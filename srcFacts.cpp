@@ -20,7 +20,6 @@
 #include <iterator>
 #include <string>
 #include <algorithm>
-#include <cstring>
 #include <sys/types.h>
 #include <errno.h>
 #include <ctype.h>
@@ -31,7 +30,6 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
-#include <string.h>
 #include <stdlib.h>
 #include <bitset>
 
@@ -51,7 +49,7 @@ using namespace std::literals::string_view_literals;
 
 const int BUFFER_SIZE = 16 * 16 * 4096;
 
-std::bitset<128> tagNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
+const std::bitset<128> tagNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
 
 /*
     Refill the buffer preserving the unused data.
@@ -103,6 +101,7 @@ int refillBuffer(std::string::const_iterator& cursor, std::string::const_iterato
 #undef TRACE
 #define HEADER(m) std::clog << std::setw(10) << std::left << m <<"\t"
 #define FIELD(l, n) l << ":|" << n << "| "
+#define FIELD2(l1, n1, l2, n2) FIELD(l1,n1) << FIELD(l2,n2)
 #define TRACE0(m)
 #define TRACE1(m, l1, n1) HEADER(m) << FIELD(l1,n1) << '\n';
 #define TRACE2(m, l1, n1, l2, n2) HEADER(m) << FIELD(l1,n1) << FIELD(l2,n2) << '\n';
@@ -149,7 +148,7 @@ int main() {
             totalBytes += bytesRead;
             if (!inXMLComment && !inCDATA && cursor == cursorEnd)
                 break;
-        } else if (inTag && (strncmp(std::addressof(*cursor), "xmlns", 5) == 0) && (cursor[5] == ':' || cursor[5] == '=')) {
+        } else if (inTag && cursor[0] == 'x' && cursor[1] == 'm' && cursor[2] == 'l' && cursor[3] == 'n' && cursor[4] == 's' && (cursor[5] == ':' || cursor[5] == '=')) {
             // parse XML namespace
             std::advance(cursor, 5);
             const std::string::const_iterator nameEnd = std::find(cursor, cursorEnd, '=');
@@ -253,7 +252,7 @@ int main() {
                 TRACE("END TAG", "prefix", inTagPrefix, "qName", inTagQName, "localName", inTagLocalName);
                 inTag = false;
             }
-        } else if (inXMLComment || (cursor[1] == '!' && *cursor == '<' && cursor[2] == '-' && cursor[3] == '-')) {
+        } else if (inXMLComment || (cursor[1] == '!' && cursor[0] == '<' && cursor[2] == '-' && cursor[3] == '-')) {
             // parse XML comment
             if (cursor == cursorEnd) {
                 std::cerr << "parser error : Unterminated XML comment\n";
@@ -262,7 +261,8 @@ int main() {
             if (!inXMLComment)
                 std::advance(cursor, 4);
             constexpr std::string_view endComment = "-->"sv;
-            std::string::const_iterator tagEnd = std::search(cursor, cursorEnd, endComment.begin(), endComment.end());
+            int position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find(endComment);
+            std::string::const_iterator tagEnd = cursor + position;
             inXMLComment = tagEnd == cursorEnd;
             const std::string_view comment(std::addressof(*cursor), std::distance(cursor, tagEnd));
             TRACE("COMMENT", "comment", comment);
@@ -270,7 +270,8 @@ int main() {
                 cursor = std::next(tagEnd, endComment.size());
             else
                 cursor = tagEnd;
-        } else if (inCDATA || (cursor[1] == '!' && *cursor == '<' && cursor[2] == '[' && (strncmp(std::addressof(cursor[3]), "CDATA[", 6) == 0))) {
+        } else if (inCDATA || (cursor[1] == '!' && cursor[0] == '<' && cursor[2] == '[' && cursor[3] == 'C' && cursor[4] == 'D'
+            && cursor[5] == 'A' && cursor[6] == 'T' && cursor[7] == 'A' && cursor[8] == '[')) {
             // parse CDATA
             if (cursor == cursorEnd) {
                 std::cerr << "parser error : Unterminated CDATA\n";
@@ -279,7 +280,8 @@ int main() {
             constexpr std::string_view endCDATA = "]]>"sv;
             if (!inCDATA)
                 std::advance(cursor, 9);
-            std::string::const_iterator tagEnd = std::search(cursor, cursorEnd, endCDATA.begin(), endCDATA.end());
+            int position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find(endCDATA);
+            std::string::const_iterator tagEnd = cursor + position;
             inCDATA = tagEnd == cursorEnd;
             const std::string_view characters(std::addressof(*cursor), std::distance(cursor, tagEnd));
             TRACE("CDATA", "characters", characters);
@@ -290,7 +292,7 @@ int main() {
                 cursor = std::next(tagEnd, endCDATA.size());
             else
                 cursor = tagEnd;
-        } else if (cursor[1] == '?' && *cursor == '<' && (strncmp(std::addressof(*cursor), "<?xml ", 6) == 0)) {
+        } else if (cursor[1] == '?' && cursor[0] == '<' && cursor[1] == '?' && cursor[2] == 'x' && cursor[3] == 'm' && cursor[4] == 'l' && cursor[5] == ' ') {
             // parse XML declaration
             constexpr std::string_view startXMLDecl = "<?xml";
             constexpr std::string_view endXMLDecl = "?>";
@@ -399,22 +401,23 @@ int main() {
             TRACE("XML DECLARATION", "version", version, "encoding", (encoding ? *encoding : ""), "standalone", (standalone ? *standalone : ""));
             std::advance(cursor, endXMLDecl.size());
             cursor = std::find_if_not(cursor, cursorEnd, isspace);
-        } else if (cursor[1] == '?' && *cursor == '<') {
+        } else if (cursor[1] == '?' && cursor[0] == '<') {
             // parse processing instruction
-            constexpr std::string_view endPI = "?>";
-            std::string::const_iterator tagEnd = std::search(cursor, cursorEnd, endPI.begin(), endPI.end());
-            if (tagEnd == cursorEnd) {
+            int position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find("?>"sv);
+            if (position == std::string_view::npos) {
                 int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
                 }
                 totalBytes += bytesRead;
-                if ((tagEnd = std::search(cursor, cursorEnd, endPI.begin(), endPI.end())) == cursorEnd) {
+                position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find("?>"sv);
+                if (position == std::string_view::npos) {
                     std::cerr << "parser error: Incomplete XML declaration\n";
                     return 1;
                 }
             }
+            std::string::const_iterator tagEnd = cursor + position;
             std::advance(cursor, 2);
             std::string::const_iterator nameEnd = std::find_if_not(cursor, tagEnd, [] (char c) { return tagNameMask[c]; });
             if (nameEnd == tagEnd) {
@@ -427,7 +430,7 @@ int main() {
             TRACE("PI", "target", target, "data", data);
             cursor = tagEnd;
             std::advance(cursor, 2);
-        } else if (cursor[1] == '/' && *cursor == '<') {
+        } else if (cursor[1] == '/' && cursor[0] == '<') {
             // parse end tag
             if (std::distance(cursor, cursorEnd) < 100) {
                 std::string::const_iterator tagEnd = std::find(cursor, cursorEnd, '>');
@@ -454,20 +457,17 @@ int main() {
                 std::cerr << "parser error : Unterminated end tag '" << std::string_view(std::addressof(*cursor), std::distance(cursor, nameEnd)) << "'\n";
                 return 1;
             }
-            size_t colonPosition = 0;
-            if (*nameEnd == ':') {
-                colonPosition = std::distance(cursor, nameEnd);
-                nameEnd = std::find_if_not(std::next(nameEnd), cursorEnd, [] (char c) { return tagNameMask[c]; });
-            }
-            const std::string_view prefix(std::addressof(*cursor), colonPosition);
             const std::string_view qName(std::addressof(*cursor), std::distance(cursor, nameEnd));
             if (qName.empty()) {
                 std::cerr << "parser error: EndTag: invalid element name\n";
                 return 1;
             }
-            if (colonPosition)
-                ++colonPosition;
-            const std::string_view localName(std::addressof(*cursor) + colonPosition, std::distance(cursor, nameEnd) - colonPosition);
+            size_t colonPosition = qName.find(':');
+            if (colonPosition == std::string::npos) {
+                colonPosition = 0;
+            }
+            const std::string_view prefix(std::addressof(*qName.cbegin()), colonPosition);
+            const std::string_view localName(std::addressof(*qName.cbegin()) + colonPosition + 1, qName.size() - colonPosition - 1);
             cursor = std::next(nameEnd);
             --depth;
             TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
@@ -503,15 +503,16 @@ int main() {
                 colonPosition = std::distance(cursor, nameEnd);
                 nameEnd = std::find_if_not(std::next(nameEnd), cursorEnd, [] (char c) { return tagNameMask[c]; });
             }
-            const std::string_view prefix(std::addressof(*cursor), colonPosition);
             const std::string_view qName(std::addressof(*cursor), std::distance(cursor, nameEnd));
             if (qName.empty()) {
                 std::cerr << "parser error: StartTag: invalid element name\n";
                 return 1;
             }
+            const std::string_view prefix(std::addressof(*cursor), colonPosition);
             if (colonPosition)
                 ++colonPosition;
-            const std::string_view localName(std::addressof(*cursor) + colonPosition, std::distance(cursor, nameEnd) - colonPosition);
+            std::advance(cursor, colonPosition);
+            const std::string_view localName(std::addressof(*cursor), std::distance(cursor, nameEnd));
             TRACE("START TAG", "prefix", prefix, "qName", qName, "localName", localName);
             if (localName == "expr"sv) {
                 ++exprCount;
