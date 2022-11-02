@@ -210,12 +210,12 @@ int main() {
             contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
             // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
             cursor = std::find_if_not(cursor, cursorEnd, isspace);
-            if (*cursor == '>') {
+            if (contents[0] == '>') {
                 contents.remove_prefix(1);
                 std::advance(cursor, 1);
                 inTag = false;
                 ++depth;
-            } else if (*cursor == '/' && contents[1] == '>') {
+            } else if (contents[0] == '/' && contents[1] == '>') {
                 contents.remove_prefix(2);
                 std::advance(cursor, 2);
                 TRACE("END TAG", "prefix", inTagPrefix, "qName", inTagQName, "localName", inTagLocalName);
@@ -223,46 +223,44 @@ int main() {
             }
         } else if (inTag) {
             // parse attribute
-            const std::string::const_iterator nameEnd = std::find_if_not(cursor, cursorEnd, [] (char c) { return tagNameMask[c]; });
-            if (nameEnd == cursorEnd) {
+            int nameEndPos = std::distance(&contents[0], std::find_if_not(contents.cbegin(), contents.cend(), [] (char c) { return tagNameMask[c]; }));
+            if (nameEndPos == contents.size()) {
                 std::cerr << "parser error : Empty attribute name" << '\n';
                 return 1;
             }
-            const std::string_view qName(std::addressof(*cursor), std::distance(cursor, nameEnd));
+            const std::string_view qName(contents.substr(0, nameEndPos));
             size_t colonPosition = qName.find(':');
             if (colonPosition == 0) {
                 std::cerr << "parser error : Invalid attribute name " << qName << '\n';
                 return 1;
             }
-            if (colonPosition == std::string::npos)
+            if (colonPosition == std::string_view::npos)
                 colonPosition = 0;
-            const std::string_view prefix(std::addressof(*qName.cbegin()), colonPosition);
+            const std::string_view prefix(qName.substr(0, colonPosition));
             if (colonPosition != 0)
                 colonPosition += 1;
-            const std::string_view localName(std::addressof(*qName.cbegin()) + colonPosition, qName.size() - colonPosition);
-            contents.remove_prefix(std::distance(cursor, nameEnd));
-            cursor = nameEnd;
-            if (isspace(*cursor)) {
+            const std::string_view localName(qName.substr(colonPosition));
+            contents.remove_prefix(nameEndPos);
+            cursor += nameEndPos;
+            if (isspace(contents.front())) {
                 contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
-                // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
                 cursor = std::find_if_not(cursor, cursorEnd, isspace);
             }
-            if (cursor == cursorEnd) {
+            if (contents.empty()) {
                 std::cerr << "parser error : attribute " << qName << " incomplete attribute\n";
                 return 1;
             }
-            if (*cursor != '=') {
+            if (contents.front() != '=') {
                 std::cerr << "parser error : attribute " << qName << " missing =\n";
                 return 1;
             }
             contents.remove_prefix(1);
             std::advance(cursor, 1);
-            if (isspace(*cursor)) {
+            if (isspace(contents.front())) {
                 contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
-                // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
                 cursor = std::find_if_not(cursor, cursorEnd, isspace);
             }
-            const char delimiter = *cursor;
+            const char delimiter = contents.front();
             if (delimiter != '"' && delimiter != '\'') {
                 std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
                 return 1;
@@ -270,27 +268,28 @@ int main() {
             contents.remove_prefix(1);
             std::advance(cursor, 1);
             std::string::const_iterator valueEnd = std::find(cursor, cursorEnd, delimiter);
-            if (valueEnd == cursorEnd) {
+            int valueEndPos = contents.find(delimiter); //std::distance(&contents[0], std::find_if_not(contents.cbegin(), contents.cend(), [] (char c) { return tagNameMask[c]; }));
+            if (valueEndPos == contents.size()) {
                 std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
                 return 1;
             }
-            const std::string_view value(std::addressof(*cursor), std::distance(cursor, valueEnd));
+            const std::string_view value(contents.substr(0, valueEndPos));
             if (localName == "url"sv)
                 url = value;
             TRACE("ATTRIBUTE", "prefix", prefix, "qname", qName, "localName", localName, "value", value);
-            contents.remove_prefix(std::distance(cursor, valueEnd) + 1);
-            cursor = std::next(valueEnd);
+            contents.remove_prefix(valueEndPos + 1);
+            std::advance(cursor, valueEndPos + 1);
             if (isspace(*cursor)) {
                 contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
                 // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
                 cursor = std::find_if_not(cursor, cursorEnd, isspace);
             }
-            if (*cursor == '>') {
+            if (contents[0] == '>') {
                 contents.remove_prefix(1);
                 std::advance(cursor, 1);
                 inTag = false;
                 ++depth;
-            } else if (*cursor == '/' && contents[1] == '>') {
+            } else if (contents[0] == '/' && contents[1] == '>') {
                 contents.remove_prefix(2);
                 std::advance(cursor, 2);
                 TRACE("END TAG", "prefix", inTagPrefix, "qName", inTagQName, "localName", inTagLocalName);
