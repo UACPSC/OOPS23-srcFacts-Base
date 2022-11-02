@@ -51,6 +51,7 @@ const int BUFFER_SIZE = 16 * 16 * 4096;
 
 const std::bitset<128> tagNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
 
+constexpr auto SPACE_CHARS = " \n\t\r\v\f"sv;
 /*
     Refill the buffer preserving the unused data.
     Current content [cursor, cursorEnd) is shifted left and new data
@@ -145,15 +146,6 @@ int main() {
     std::string lastCursor;
     while (true) {
 
-        if (contents.size() != std::distance(cursor, cursorEnd)) {
-            fprintf(stderr, "DEBUG:  %s %s %d std::distance(cursor, cursorEnd): %d\n", __FILE__,  __FUNCTION__, __LINE__,  (int) std::distance(cursor, cursorEnd));
-            exit(1);
-        }
-        if (contents.substr(0, 100) != std::string_view(&cursor[0], std::min(100l, std::distance(cursor, cursorEnd)))) {
-            fprintf(stderr, "DEBUG:  %s %s %d std::string_view(cursor, std::distance(cursor, cursorEnd)): %s\n", __FILE__,  __FUNCTION__, __LINE__,  std::string_view(&cursor[0], std::distance(cursor, cursorEnd)).data());
-            fprintf(stderr, "DEBUG:  %s %s %d contents: %s\n", __FILE__,  __FUNCTION__, __LINE__,  contents.data());
-            exit(1);
-        }
         if (std::distance(cursor, cursorEnd) < 5) {
             // refill buffer and adjust iterator
             int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
@@ -164,34 +156,35 @@ int main() {
             totalBytes += bytesRead;
             if (!inXMLComment && !inCDATA && cursor == cursorEnd)
                 break;
-        } else if (inTag && contents[0] == 'x' && contents[1] == 'm' && contents[2] == 'l' && contents[3] == 'n' && contents[4] == 's' && (cursor[5] == ':' || contents[5] == '=')) {
+        } else if (inTag && contents[0] == 'x' && contents[1] == 'm' && contents[2] == 'l' && contents[3] == 'n' && contents[4] == 's' && (contents[5] == ':' || contents[5] == '=')) {
             // parse XML namespace
             contents.remove_prefix(5);
             std::advance(cursor, 5);
             const std::string::const_iterator nameEnd = std::find(cursor, cursorEnd, '=');
             int nameEndPos = contents.find('=');
-            if (nameEnd == cursorEnd) {
+            if (nameEndPos == contents.npos) {
                 std::cerr << "parser error : incomplete namespace\n";
                 return 1;
             }
             int prefixSize = 0;
-            if (*cursor == ':') {
+            if (contents.front() == ':') {
                 contents.remove_prefix(1);
                 std::advance(cursor, 1);
+                --nameEndPos;
                 prefixSize = nameEndPos;
                 // prefixSize = std::distance(cursor, nameEnd);
             }
-            const std::string_view prefix(std::addressof(*cursor), prefixSize);
-            contents.remove_prefix(std::distance(cursor, nameEnd) + 1);
+            const std::string_view prefix(contents.substr(0, prefixSize));
+            contents.remove_prefix(nameEndPos + 1);
             cursor = std::next(nameEnd);
-            contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
-            // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
-            cursor = std::find_if_not(cursor, cursorEnd, isspace);
-            if (cursor == cursorEnd) {
+            auto position = contents.find_first_not_of(SPACE_CHARS);
+            contents.remove_prefix(position);
+            cursor += position;
+            if (contents.empty()) {
                 std::cerr << "parser error : incomplete namespace\n";
                 return 1;
             }
-            const char delimiter = *cursor;
+            const char delimiter = contents.front();
             if (delimiter != '"' && delimiter != '\'') {
                 std::cerr << "parser error : incomplete namespace\n";
                 return 1;
@@ -207,7 +200,7 @@ int main() {
             TRACE("NAMESPACE", "prefix", prefix, "uri", uri);
             contents.remove_prefix(std::distance(cursor, valueEnd) + 1);
             cursor = std::next(valueEnd);
-            contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
             cursor = std::find_if_not(cursor, cursorEnd, isspace);
             if (contents[0] == '>') {
@@ -237,13 +230,11 @@ int main() {
             if (colonPosition == std::string_view::npos)
                 colonPosition = 0;
             const std::string_view prefix(qName.substr(0, colonPosition));
-            if (colonPosition != 0)
-                colonPosition += 1;
-            const std::string_view localName(qName.substr(colonPosition));
+            const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
             contents.remove_prefix(nameEndPos);
             cursor += nameEndPos;
             if (isspace(contents.front())) {
-                contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
+                contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
                 cursor = std::find_if_not(cursor, cursorEnd, isspace);
             }
             if (contents.empty()) {
@@ -257,7 +248,7 @@ int main() {
             contents.remove_prefix(1);
             std::advance(cursor, 1);
             if (isspace(contents.front())) {
-                contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
+                contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
                 cursor = std::find_if_not(cursor, cursorEnd, isspace);
             }
             const char delimiter = contents.front();
@@ -267,7 +258,7 @@ int main() {
             }
             contents.remove_prefix(1);
             std::advance(cursor, 1);
-            std::string::const_iterator valueEnd = std::find(cursor, cursorEnd, delimiter);
+            // std::string::const_iterator valueEnd = std::find(cursor, cursorEnd, delimiter);
             int valueEndPos = contents.find(delimiter); //std::distance(&contents[0], std::find_if_not(contents.cbegin(), contents.cend(), [] (char c) { return tagNameMask[c]; }));
             if (valueEndPos == contents.size()) {
                 std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
@@ -279,10 +270,11 @@ int main() {
             TRACE("ATTRIBUTE", "prefix", prefix, "qname", qName, "localName", localName, "value", value);
             contents.remove_prefix(valueEndPos + 1);
             std::advance(cursor, valueEndPos + 1);
-            if (isspace(*cursor)) {
-                contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
+            if (isspace(contents.front())) {
+                auto position = contents.find_first_not_of(SPACE_CHARS);
+                contents.remove_prefix(position);
                 // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
-                cursor = std::find_if_not(cursor, cursorEnd, isspace);
+                cursor += position;
             }
             if (contents[0] == '>') {
                 contents.remove_prefix(1);
@@ -295,7 +287,8 @@ int main() {
                 TRACE("END TAG", "prefix", inTagPrefix, "qName", inTagQName, "localName", inTagLocalName);
                 inTag = false;
             }
-        } else if (inXMLComment || (cursor[1] == '!' && contents[0] == '<' && contents[2] == '-' && contents[3] == '-')) {
+        } else if (inXMLComment || contents.compare("<!==") == 0) {
+        // } else if (inXMLComment || (contents[1] == '!' && contents[0] == '<' && contents[2] == '-' && contents[3] == '-')) {
             // parse XML comment
             if (cursor == cursorEnd) {
                 std::cerr << "parser error : Unterminated XML comment\n";
@@ -321,7 +314,7 @@ int main() {
         } else if (inCDATA || (cursor[1] == '!' && contents[0] == '<' && contents[2] == '[' && contents[3] == 'C' && contents[4] == 'D'
             && contents[5] == 'A' && contents[6] == 'T' && contents[7] == 'A' && contents[8] == '[')) {
             // parse CDATA
-            if (cursor == cursorEnd) {
+            if (contents.empty()) {
                 std::cerr << "parser error : Unterminated CDATA\n";
                 return 1;
             }
@@ -343,6 +336,7 @@ int main() {
             //     cursor = std::next(tagEnd, endCDATA.size());
             // else
             //     cursor = tagEnd;
+        // } else if (contents[1] == '?' && contents.compare(0, 6, "<?xml ") == 0) {
         } else if (cursor[1] == '?' && contents[0] == '<' && contents[1] == '?' && contents[2] == 'x' && contents[3] == 'm' && contents[4] == 'l' && contents[5] == ' ') {
             // parse XML declaration
             constexpr std::string_view startXMLDecl = "<?xml";
@@ -593,10 +587,8 @@ int main() {
                 std::cerr << "parser error: StartTag: invalid element name\n";
                 return 1;
             }
-            const std::string_view prefix(contents.substr(0, colonPosition));
-            if (colonPosition)
-                ++colonPosition;
-            const std::string_view localName(contents.substr(colonPosition, nameEndPos));
+            const std::string_view prefix(qName.substr(0, colonPosition));
+            const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0, nameEndPos));
             TRACE("START TAG", "prefix", prefix, "qName", qName, "localName", localName);
             if (localName == "expr"sv) {
                 ++exprCount;
@@ -616,7 +608,7 @@ int main() {
             contents.remove_prefix(nameEndPos);
             cursor += nameEndPos;
             if (*cursor != '>') {
-                contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
+                contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
                 // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
                 cursor = std::find_if_not(cursor, cursorEnd, isspace);
             }
@@ -630,13 +622,13 @@ int main() {
                 TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
             } else {
                 inTagQName = qName;
-                inTagPrefix = std::string_view(inTagQName.data(), prefix.size());
-                inTagLocalName = std::string_view(inTagQName.data() + prefix.size() + 1);
+                inTagPrefix = inTagQName.substr(0, prefix.size());
+                inTagLocalName = inTagQName.substr(prefix.size() + 1);
                 inTag = true;
             }
         } else if (depth == 0) {
             // parse characters before or after XML
-            contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
             cursor = std::find_if_not(cursor, cursorEnd, isspace);
         } else if (*cursor == '&') {
