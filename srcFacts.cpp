@@ -514,16 +514,16 @@ int main() {
             std::advance(cursor, 2);
         } else if (cursor[1] == '/' && contents[0] == '<') {
             // parse end tag
-            if (std::distance(cursor, cursorEnd) < 100) {
-                std::string::const_iterator tagEnd = std::find(cursor, cursorEnd, '>');
-                if (tagEnd == cursorEnd) {
+            if (contents.size() < 100) {
+                if (std::none_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
                     int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
                     }
                     totalBytes += bytesRead;
-                    if ((tagEnd = std::find(cursor, cursorEnd, '>')) == cursorEnd) {
+                    // @TODO start search after initial sed
+                    if (std::none_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
                         std::cerr << "parser error: Incomplete element end tag\n";
                         return 1;
                     }
@@ -532,16 +532,16 @@ int main() {
             }
             contents.remove_prefix(2);
             std::advance(cursor, 2);
-            if (*cursor == ':') {
+            if (contents.front() == ':') {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
             }
-            std::string::const_iterator nameEnd = std::find_if_not(cursor, cursorEnd, [] (char c) { return tagNameMask[c]; });
-            if (nameEnd == cursorEnd) {
-                std::cerr << "parser error : Unterminated end tag '" << std::string_view(std::addressof(*cursor), std::distance(cursor, nameEnd)) << "'\n";
+            int nameEndPos = std::distance(&contents[0], std::find_if_not(contents.cbegin(), contents.cend(), [] (char c) { return tagNameMask[c]; }));
+            if (nameEndPos == contents.size()) {
+                std::cerr << "parser error : Unterminated end tag '" << contents.substr(0, nameEndPos) << "'\n";
                 return 1;
             }
-            const std::string_view qName(std::addressof(*cursor), std::distance(cursor, nameEnd));
+            const std::string_view qName(contents.substr(0, nameEndPos));
             if (qName.empty()) {
                 std::cerr << "parser error: EndTag: invalid element name\n";
                 return 1;
@@ -550,16 +550,16 @@ int main() {
             if (colonPosition == std::string::npos) {
                 colonPosition = 0;
             }
-            const std::string_view prefix(std::addressof(*qName.cbegin()), colonPosition);
-            const std::string_view localName(std::addressof(*qName.cbegin()) + colonPosition + 1, qName.size() - colonPosition - 1);
-            contents.remove_prefix(std::distance(cursor, nameEnd) + 1);
-            cursor = std::next(nameEnd);
+            const std::string_view prefix(qName.substr(0, colonPosition));
+            const std::string_view localName(qName.substr(colonPosition + 1));
+            contents.remove_prefix(nameEndPos + 1);
+            cursor += nameEndPos + 1;
             --depth;
             TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
         } else if (*cursor == '<') {
             // parse start tag
             if (contents.size() < 200) {
-                if (!std::any_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
+                if (std::none_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
                     int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
@@ -567,7 +567,7 @@ int main() {
                     }
                     totalBytes += bytesRead;
                     // @TODO start search after initial sed
-                    if (!std::any_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
+                    if (std::none_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
                         std::cerr << "parser error: Incomplete element start tag\n";
                         return 1;
                     }
@@ -580,35 +580,25 @@ int main() {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
             }
-            std::string::const_iterator nameEnd = std::find_if_not(cursor, cursorEnd, [] (char c) { return tagNameMask[c]; });
-            int nameEndPos = &contents[0] - std::find_if_not(contents.cbegin(), contents.cend(), [] (char c) { return tagNameMask[c]; });
+            int nameEndPos = std::distance(&contents[0], std::find_if_not(contents.cbegin(), contents.cend(), [] (char c) { return tagNameMask[c]; }));
             if (nameEndPos == contents.size()) {
                 std::cerr << "parser error : Unterminated start tag '" << contents.substr(0, nameEndPos) << "'\n";
-                // std::cerr << "parser error : Unterminated start tag '" << std::string_view(std::addressof(*cursor), std::distance(cursor, nameEnd)) << "'\n";
                 return 1;
             }
             size_t colonPosition = 0;
-            if (*nameEnd == ':') {
-            // if (*nameEnd == ':') {
+            if (contents[nameEndPos] == ':') {
                 colonPosition = nameEndPos;
-                // colonPosition = std::distance(cursor, nameEnd);
-                nameEnd = std::find_if_not(std::next(nameEnd), cursorEnd, [] (char c) { return tagNameMask[c]; });
-                nameEndPos = &contents[0] - std::find_if_not(contents.cbegin() + nameEndPos + 1, contents.cend(), [] (char c) { return tagNameMask[c]; });
+                nameEndPos = std::distance(&contents[0], std::find_if_not(contents.cbegin() + nameEndPos + 1, contents.cend(), [] (char c) { return tagNameMask[c]; }));
             }
-            // const std::string_view qName(contents.substr(0, nameEndPos));
-            const std::string_view qName(std::addressof(*cursor), std::distance(cursor, nameEnd));
+            const std::string_view qName(contents.substr(0, nameEndPos));
             if (qName.empty()) {
                 std::cerr << "parser error: StartTag: invalid element name\n";
                 return 1;
             }
             const std::string_view prefix(contents.substr(0, colonPosition));
-            // const std::string_view prefix(std::addressof(*cursor), colonPosition);
             if (colonPosition)
                 ++colonPosition;
-            contents.remove_prefix(colonPosition);
-            std::advance(cursor, colonPosition);
-            // const std::string_view localName(contents.substr(0, nameEndPos));
-            const std::string_view localName(std::addressof(*cursor), std::distance(cursor, nameEnd));
+            const std::string_view localName(contents.substr(colonPosition, nameEndPos));
             TRACE("START TAG", "prefix", prefix, "qName", qName, "localName", localName);
             if (localName == "expr"sv) {
                 ++exprCount;
@@ -625,8 +615,8 @@ int main() {
             } else if (localName == "class"sv) {
                 ++classCount;
             }
-            contents.remove_prefix(std::distance(cursor, nameEnd));
-            cursor = nameEnd;
+            contents.remove_prefix(nameEndPos);
+            cursor += nameEndPos;
             if (*cursor != '>') {
                 contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
                 // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
