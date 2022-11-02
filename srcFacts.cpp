@@ -63,7 +63,7 @@ const std::bitset<128> tagNameMask("00000111111111111111111111111110100001111111
     @retval 0 EOF
     @retval -1 Read error
 */
-int refillBuffer(std::string::const_iterator& cursor, std::string::const_iterator& cursorEnd, std::string& buffer) {
+int refillBuffer(std::string_view& contents, std::string::const_iterator& cursor, std::string::const_iterator& cursorEnd, std::string& buffer) {
 
     // number of unprocessed characters [cursor, cursorEnd)
     size_t unprocessed = std::distance(cursor, cursorEnd);
@@ -87,11 +87,14 @@ int refillBuffer(std::string::const_iterator& cursor, std::string::const_iterato
         // EOF
         cursor = buffer.cend();
         cursorEnd = buffer.cend();
+        contents = ""sv;
         return 0;
     }
 
     // adjust the end of the cursor to the new bytes
     cursorEnd += readBytes;
+
+    contents = std::string_view(&buffer[0], unprocessed + readBytes);
 
     return readBytes;
 }
@@ -153,7 +156,7 @@ int main() {
         }
         if (std::distance(cursor, cursorEnd) < 5) {
             // refill buffer and adjust iterator
-            int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
+            int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
                 return 1;
@@ -161,7 +164,6 @@ int main() {
             totalBytes += bytesRead;
             if (!inXMLComment && !inCDATA && cursor == cursorEnd)
                 break;
-            contents = std::string_view(&cursor[0], std::distance(cursor, cursorEnd));
         } else if (inTag && contents[0] == 'x' && contents[1] == 'm' && contents[2] == 'l' && contents[3] == 'n' && contents[4] == 's' && (cursor[5] == ':' || contents[5] == '=')) {
             // parse XML namespace
             contents.remove_prefix(5);
@@ -348,7 +350,7 @@ int main() {
             constexpr std::string_view endXMLDecl = "?>";
             std::string::const_iterator tagEnd = std::find(cursor, cursorEnd, '>');
             if (tagEnd == cursorEnd) {
-                int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
+                int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -358,7 +360,6 @@ int main() {
                     std::cerr << "parser error: Incomplete XML declaration\n";
                     return 1;
                 }
-                contents = std::string_view(&cursor[0], std::distance(cursor, cursorEnd));
             }
             contents.remove_prefix(startXMLDecl.size());
             std::advance(cursor, startXMLDecl.size());
@@ -482,7 +483,7 @@ int main() {
             // parse processing instruction
             int position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find("?>"sv);
             if (position == std::string_view::npos) {
-                int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
+                int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -516,7 +517,7 @@ int main() {
             // parse end tag
             if (contents.size() < 100) {
                 if (std::none_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
-                    int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
+                    int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
@@ -527,7 +528,6 @@ int main() {
                         std::cerr << "parser error: Incomplete element end tag\n";
                         return 1;
                     }
-                    contents = std::string_view(&cursor[0], std::distance(cursor, cursorEnd));
                 }
             }
             contents.remove_prefix(2);
@@ -560,7 +560,7 @@ int main() {
             // parse start tag
             if (contents.size() < 200) {
                 if (std::none_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
-                    int bytesRead = refillBuffer(cursor, cursorEnd, buffer);
+                    int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
@@ -571,7 +571,6 @@ int main() {
                         std::cerr << "parser error: Incomplete element start tag\n";
                         return 1;
                     }
-                    contents = std::string_view(&cursor[0], std::distance(cursor, cursorEnd));
                 }
             }
             contents.remove_prefix(1);
