@@ -643,31 +643,32 @@ int main() {
             cursor = std::find_if_not(cursor, cursorEnd, isspace);
         } else if (*cursor == '&') {
             // parse character entity references
-            std::string_view characters;
+            std::string_view reference;
             if (cursor[1] == 'l' && contents[2] == 't' && contents[3] == ';') {
-                characters = "<";
+                reference = "<";
                 contents.remove_prefix(4);
                 std::advance(cursor, 4);
             } else if (cursor[1] == 'g' && contents[2] == 't' && contents[3] == ';') {
-                characters = ">";
+                reference = ">";
                 contents.remove_prefix(4);
                 std::advance(cursor, 4);
             } else if (cursor[1] == 'a' && contents[2] == 'm' && contents[3] == 'p' && contents[4] == ';') {
-                characters = "&";
+                reference = "&";
                 contents.remove_prefix(5);
                 std::advance(cursor, 5);
             } else {
-                characters = "&";
+                reference = "&";
                 contents.remove_prefix(1);
                 std::advance(cursor, 1);
             }
+            const std::string_view characters(reference);
             TRACE("ENTITYREF", "characters", characters);
             ++textsize;
 
         } else {
             // parse character non-entity references
-            const std::string::const_iterator tagEnd = std::find_if(cursor, cursorEnd, [] (char c) { return c == '<' || c == '&'; });
-            const std::string_view characters(std::addressof(*cursor), std::distance(cursor, tagEnd));
+            int tagEndPos = contents.find_first_of("<&");
+            const std::string_view characters(contents.substr(0, tagEndPos));
             TRACE("CHARACTERS", "characters", characters);
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
             textsize += static_cast<int>(characters.size());
