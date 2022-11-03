@@ -160,7 +160,7 @@ int main() {
             // parse XML namespace
             contents.remove_prefix(5);
             std::advance(cursor, 5);
-            const std::string::const_iterator nameEnd = std::find(cursor, cursorEnd, '=');
+            // const std::string::const_iterator nameEnd = std::find(cursor, cursorEnd, '=');
             int nameEndPos = contents.find('=');
             if (nameEndPos == contents.npos) {
                 std::cerr << "parser error : incomplete namespace\n";
@@ -176,7 +176,7 @@ int main() {
             }
             const std::string_view prefix(contents.substr(0, prefixSize));
             contents.remove_prefix(nameEndPos + 1);
-            cursor = std::next(nameEnd);
+            cursor += nameEndPos + 1;
             auto position = contents.find_first_not_of(SPACE_CHARS);
             contents.remove_prefix(position);
             cursor += position;
@@ -311,7 +311,7 @@ int main() {
                 contents.remove_prefix(std::distance(cursor, tagEnd));
                 cursor = tagEnd;
             }
-        } else if (inCDATA || (cursor[1] == '!' && contents[0] == '<' && contents[2] == '[' && contents[3] == 'C' && contents[4] == 'D'
+        } else if (inCDATA || (contents[1] == '!' && contents[0] == '<' && contents[2] == '[' && contents[3] == 'C' && contents[4] == 'D'
             && contents[5] == 'A' && contents[6] == 'T' && contents[7] == 'A' && contents[8] == '[')) {
             // parse CDATA
             if (contents.empty()) {
@@ -323,21 +323,21 @@ int main() {
                 contents.remove_prefix(9);
                 std::advance(cursor, 9);
             }
-            int position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find(endCDATA);
-            std::string::const_iterator tagEnd = cursor + position;
-            inCDATA = tagEnd == cursorEnd;
-            const std::string_view characters(std::addressof(*cursor), std::distance(cursor, tagEnd));
+            int tagEndPos = contents.find(endCDATA);
+            inCDATA = tagEndPos == contents.size();
+            const std::string_view characters(contents.substr(0, tagEndPos));
             TRACE("CDATA", "characters", characters);
             textsize += static_cast<int>(characters.size());
             loc += static_cast<int>(std::count(characters.begin(), characters.end(), '\n'));
-            contents.remove_prefix(std::distance(cursor, tagEnd) + endCDATA.size());
-            cursor = std::next(tagEnd, endCDATA.size());
-            // if (!inCDATA)
-            //     cursor = std::next(tagEnd, endCDATA.size());
-            // else
-            //     cursor = tagEnd;
+            if (!inCDATA) {
+                contents.remove_prefix(tagEndPos + endCDATA.size() + 1);
+                cursor += tagEndPos + endCDATA.size() + 1;
+            } else {
+                contents.remove_prefix(tagEndPos);
+                cursor += tagEndPos;
+            }
         // } else if (contents[1] == '?' && contents.compare(0, 6, "<?xml ") == 0) {
-        } else if (cursor[1] == '?' && contents[0] == '<' && contents[1] == '?' && contents[2] == 'x' && contents[3] == 'm' && contents[4] == 'l' && contents[5] == ' ') {
+        } else if (contents[1] == '?' && contents[0] == '<' && contents[1] == '?' && contents[2] == 'x' && contents[3] == 'm' && contents[4] == 'l' && contents[5] == ' ') {
             // parse XML declaration
             constexpr std::string_view startXMLDecl = "<?xml";
             constexpr std::string_view endXMLDecl = "?>";
@@ -472,18 +472,17 @@ int main() {
             // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
             cursor = std::find_if_not(cursor, cursorEnd, isspace);
 
-        } else if (cursor[1] == '?' && contents[0] == '<') {
+        } else if (contents[1] == '?' && contents[0] == '<') {
             // parse processing instruction
-            int position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find("?>"sv);
+            int position = contents.find("?>"sv);
             if (position == std::string_view::npos) {
                 int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
                 }
-                contents = std::string_view(&cursor[0], std::distance(cursor, cursorEnd));
                 totalBytes += bytesRead;
-                position = std::string_view(&*cursor, std::distance(cursor, cursorEnd)).find("?>"sv);
+                position = contents.find("?>"sv);
                 if (position == std::string_view::npos) {
                     std::cerr << "parser error: Incomplete XML declaration\n";
                     return 1;
@@ -506,7 +505,7 @@ int main() {
             cursor = tagEnd;
             contents.remove_prefix(2);
             std::advance(cursor, 2);
-        } else if (cursor[1] == '/' && contents[0] == '<') {
+        } else if (contents[1] == '/' && contents[0] == '<') {
             // parse end tag
             if (contents.size() < 100) {
                 if (std::none_of(cursor, cursorEnd, [] (char c) { return c =='>'; })) {
@@ -634,15 +633,15 @@ int main() {
         } else if (*cursor == '&') {
             // parse character entity references
             std::string_view reference;
-            if (cursor[1] == 'l' && contents[2] == 't' && contents[3] == ';') {
+            if (contents[1] == 'l' && contents[2] == 't' && contents[3] == ';') {
                 reference = "<";
                 contents.remove_prefix(4);
                 std::advance(cursor, 4);
-            } else if (cursor[1] == 'g' && contents[2] == 't' && contents[3] == ';') {
+            } else if (contents[1] == 'g' && contents[2] == 't' && contents[3] == ';') {
                 reference = ">";
                 contents.remove_prefix(4);
                 std::advance(cursor, 4);
-            } else if (cursor[1] == 'a' && contents[2] == 'm' && contents[3] == 'p' && contents[4] == ';') {
+            } else if (contents[1] == 'a' && contents[2] == 'm' && contents[3] == 'p' && contents[4] == ';') {
                 reference = "&";
                 contents.remove_prefix(5);
                 std::advance(cursor, 5);
