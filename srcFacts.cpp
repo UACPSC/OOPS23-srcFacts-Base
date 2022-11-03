@@ -250,15 +250,13 @@ int main() {
             if (!inXMLComment) {
                 content.remove_prefix("<!=="sv.size());
             }
-            constexpr std::string_view endComment = "-->"sv;
-            int tagEndPosition = content.find(endComment);
+            int tagEndPosition = content.find("-->"sv);
             inXMLComment = tagEndPosition == content.size();
             const std::string_view comment(content.substr(0, tagEndPosition));
             TRACE("COMMENT", "comment", comment);
+            content.remove_prefix(tagEndPosition);
             if (!inXMLComment) {
-                content.remove_prefix(tagEndPosition + 1 + endComment.size());
-            } else {
-                content.remove_prefix(tagEndPosition);
+                content.remove_prefix(1 + "-->"sv.size());
             }
         } else if (inCDATA || (content[1] == '!' && content[0] == '<' && content[2] == '[' && content[3] == 'C' && content[4] == 'D'
             && content[5] == 'A' && content[6] == 'T' && content[7] == 'A' && content[8] == '[')) {
