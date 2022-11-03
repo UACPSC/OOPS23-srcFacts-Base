@@ -472,9 +472,9 @@ int main() {
             TRACE("XML DECLARATION", "version", version, "encoding", (encoding ? *encoding : ""), "standalone", (standalone ? *standalone : ""));
             contents.remove_prefix(endXMLDecl.size());
             std::advance(cursor, endXMLDecl.size());
-            contents.remove_prefix(contents.find_first_not_of(" \n\t\r"sv));
-            // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
-            cursor = std::find_if_not(cursor, cursorEnd, isspace);
+            auto position = contents.find(SPACE_CHARS);
+            contents.remove_prefix(position);
+            cursor += position;
 
         } else if (contents[1] == '?' && contents[0] == '<') {
             // parse processing instruction
