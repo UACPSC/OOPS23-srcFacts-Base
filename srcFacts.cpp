@@ -401,10 +401,10 @@ int main() {
                 //     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
                 //     return 1;
                 // }
-                const std::string_view attr2(nameEndPos);
-                contents.remove_prefix(std::distance(cursor, nameEnd) + 1);
-                cursor = std::next(nameEnd);
-                char delimiter2 = *cursor;
+                const std::string_view attr2(contents.substr(0, nameEndPos));
+                contents.remove_prefix(nameEndPos + 1);
+                cursor += nameEndPos + 1;
+                char delimiter2 = contents.front();
                 if (delimiter2 != '"' && delimiter2 != '\'') {
                     std::cerr << "parser error: Invalid end delimiter for attribute " << attr2 << " in XML declaration\n";
                     return 1;
@@ -412,33 +412,36 @@ int main() {
                 contents.remove_prefix(1);
                 std::advance(cursor, 1);
                 auto valueEnd = std::find(cursor, tagEnd, delimiter2);
-                if (valueEnd == tagEnd) {
-                    std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
-                    return 1;
-                }
+                auto valueEndPos = contents.find(delimiter2);
+                // if (valueEnd == tagEnd) {
+                //     std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
+                //     return 1;
+                // }
                 if (attr2 == "encoding"sv) {
-                    encoding = std::string_view(std::addressof(*cursor), std::distance(cursor, valueEnd));
+                    encoding = std::string_view(contents.substr(0, valueEndPos));
                 } else if (attr2 == "standalone"sv) {
-                    standalone = std::string_view(std::addressof(*cursor), std::distance(cursor, valueEnd));
+                    standalone = std::string_view(contents.substr(0, valueEndPos));
                 } else {
                     std::cerr << "parser error: Invalid attribute " << attr2 << " in XML declaration\n";
                     return 1;
                 }
-                contents.remove_prefix(std::distance(cursor, valueEnd) + 1);
-                cursor = std::next(valueEnd);
-                contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, tagEnd, isspace)));
-                cursor = std::find_if_not(cursor, tagEnd, isspace);
+                contents.remove_prefix(valueEndPos + 1);
+                cursor += valueEndPos + 1;
+                auto position = contents.find_first_not_of(SPACE_CHARS);
+                contents.remove_prefix(position);
+                cursor += position;
             }
             if (cursor != (tagEnd - endXMLDecl.size() + 1)) {
                 nameEnd = std::find(cursor, tagEnd, '=');
-                if (nameEnd == tagEnd) {
+                auto nameEndPos = contents.substr(0, tagEndPos).find('=');
+                if (nameEndPos == contents.npos) {
                     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
                     return 1;
                 }
-                const std::string_view attr2(std::addressof(*cursor), std::distance(cursor, nameEnd));
-                contents.remove_prefix(std::distance(cursor, nameEnd) + 1);
-                cursor = std::next(nameEnd);
-                const char delimiter2 = *cursor;
+                const std::string_view attr2(contents.substr(0, nameEndPos));
+                contents.remove_prefix(nameEndPos + 1);
+                cursor += nameEndPos + 1;
+                const char delimiter2 = contents.front();
                 if (delimiter2 != '"' && delimiter2 != '\'') {
                     std::cerr << "parser error: Invalid end delimiter for attribute " << attr2 << " in XML declaration\n";
                     return 1;
@@ -446,21 +449,23 @@ int main() {
                 contents.remove_prefix(1);
                 std::advance(cursor, 1);
                 auto valueEnd = std::find(cursor, tagEnd, delimiter2);
-                if (valueEnd == tagEnd) {
+                auto valueEndPos = contents.substr(0, tagEndPos).find(delimiter2);
+                if (valueEndPos == contents.npos) {
                     std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
                     return 1;
                 }
                 if (!standalone && attr2 == "standalone"sv) {
-                    standalone = std::string_view(std::addressof(*cursor), std::distance(cursor, valueEnd));
+                    standalone = std::string_view(contents.substr(0, valueEndPos));
                 } else {
                     std::cerr << "parser error: Invalid attribute " << attr2 << " in XML declaration\n";
                     return 1;
                 }
-                contents.remove_prefix(std::distance(cursor, valueEnd) + 1);
-                cursor = std::next(valueEnd);
-                if (isspace(*cursor)) {
-                    contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, tagEnd, isspace)));
-                    cursor = std::find_if_not(cursor, tagEnd, isspace);
+                contents.remove_prefix(valueEndPos + 1);
+                cursor += valueEndPos + 1;
+                if (isspace(contents.front())) {
+                    auto position = contents.substr(0, tagEndPos).find(SPACE_CHARS);
+                    contents.remove_prefix(position);
+                    cursor += position;
                 }
 //                cursor = std::find_if_not(cursor, tagEnd, isspace);
             }
