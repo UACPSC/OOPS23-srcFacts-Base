@@ -188,7 +188,7 @@ int main() {
             }
         } else if (inTag) {
             // parse attribute
-            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Empty attribute name" << '\n';
                 return 1;
@@ -221,7 +221,7 @@ int main() {
                 return 1;
             }
             content.remove_prefix("\""sv.size());
-            std::size_t valueEndPosition = content.find(delimiter); //std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t valueEndPosition = content.find(delimiter);
             if (valueEndPosition == content.size()) {
                 std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
                 return 1;
@@ -406,7 +406,7 @@ int main() {
                 }
             }
             content.remove_prefix("<?"sv.size());
-            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             // FIX
             if (nameEndPosition == 0) {
                 std::cerr << "parser error : Unterminated processing instruction '" << content.substr(0, nameEndPosition) << "'\n";
@@ -440,7 +440,7 @@ int main() {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
             }
-            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated end tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -481,7 +481,7 @@ int main() {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
             }
-            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated start tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -489,7 +489,7 @@ int main() {
             size_t colonPosition = 0;
             if (content[nameEndPosition] == ':') {
                 colonPosition = nameEndPosition;
-                nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin() + nameEndPosition + 1, content.cend(), [] (char c) { return tagNameMask[c]; }));
+                nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin() + nameEndPosition + 1, content.cend(), [] (char c) { return tagNameMask[c]; }));
             }
             const std::string_view qName(content.substr(0, nameEndPosition));
             if (qName.empty()) {
