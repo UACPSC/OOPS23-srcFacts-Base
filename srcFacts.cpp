@@ -472,14 +472,14 @@ int main() {
             TRACE("XML DECLARATION", "version", version, "encoding", (encoding ? *encoding : ""), "standalone", (standalone ? *standalone : ""));
             contents.remove_prefix(endXMLDecl.size());
             std::advance(cursor, endXMLDecl.size());
-            auto position = contents.find(SPACE_CHARS);
+            auto position = contents.find_first_not_of(SPACE_CHARS);
             contents.remove_prefix(position);
             cursor += position;
 
         } else if (contents[1] == '?' && contents[0] == '<') {
             // parse processing instruction
             int position = contents.find("?>"sv);
-            if (position == std::string_view::npos) {
+            if (position == contents.npos) {
                 int bytesRead = refillBuffer(contents, cursor, cursorEnd, buffer);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
