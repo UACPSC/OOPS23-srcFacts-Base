@@ -22,7 +22,6 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <errno.h>
-#include <ctype.h>
 #include <string_view>
 #include <optional>
 #include <iomanip>
@@ -51,20 +50,22 @@ const int BUFFER_SIZE = 16 * 16 * 4096;
 
 const std::bitset<128> tagNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
 
+constexpr auto TAG_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.";
+
 constexpr auto SPACE_CHARS = " \n\t\r\v\f"sv;
+
 /*
     Refill the buffer preserving the unused data.
-    Current content [cursor, cursorEnd) is shifted left and new data
-    appended to the rest of the buffer.
+    Current content is shifted left and new data
+    appended to the rest of the contents.
 
-    @param[in,out] cursor Iterator to current position in buffer
-    @param[in, out] cursorEnd Iterator to end of buffer for this read
     @param[in, out] buffer Container for characters
+    @param[in, out] contents View of buffer
     @return Number of bytes read
     @retval 0 EOF
     @retval -1 Read error
 */
-int refillBuffer(std::string_view& contents, std::string& buffer) {
+int refillBuffer(std::string& buffer, std::string_view& contents) {
 
     // move unprocessed characters in contents to start of the buffer
     std::copy(contents.begin(), contents.end(), buffer.begin());
@@ -132,7 +133,7 @@ int main() {
     while (true) {
         if (contents.size() < 5) {
             // refill buffer and adjust iterator
-            int bytesRead = refillBuffer(contents, buffer);
+            int bytesRead = refillBuffer(buffer, contents);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
                 return 1;
@@ -205,10 +206,7 @@ int main() {
             const std::string_view prefix(qName.substr(0, colonPosition));
             const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
             contents.remove_prefix(nameEndPos);
-            if (isspace(contents.front())) {
-                auto position = contents.find_first_not_of(SPACE_CHARS);
-                contents.remove_prefix(position);
-            }
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             if (contents.empty()) {
                 std::cerr << "parser error : attribute " << qName << " incomplete attribute\n";
                 return 1;
@@ -218,10 +216,7 @@ int main() {
                 return 1;
             }
             contents.remove_prefix(1);
-            if (isspace(contents.front())) {
-                auto position = contents.find_first_not_of(SPACE_CHARS);
-                contents.remove_prefix(position);
-            }
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             const char delimiter = contents.front();
             if (delimiter != '"' && delimiter != '\'') {
                 std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
@@ -238,10 +233,7 @@ int main() {
                 url = value;
             TRACE("ATTRIBUTE", "prefix", prefix, "qname", qName, "localName", localName, "value", value);
             contents.remove_prefix(valueEndPos + 1);
-            if (isspace(contents.front())) {
-                auto position = contents.find_first_not_of(SPACE_CHARS);
-                contents.remove_prefix(position);
-            }
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             if (contents[0] == '>') {
                 contents.remove_prefix(1);
                 inTag = false;
@@ -301,7 +293,7 @@ int main() {
             constexpr std::string_view endXMLDecl = "?>";
             auto tagEndPos = contents.find('>');
             if (tagEndPos == contents.npos) {
-                int bytesRead = refillBuffer(contents, buffer);
+                int bytesRead = refillBuffer(buffer, contents);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -313,10 +305,7 @@ int main() {
                 }
             }
             contents.remove_prefix(startXMLDecl.size());
-            if (isspace(contents.front())) {
-                auto position = contents.find_first_not_of(SPACE_CHARS);
-                contents.remove_prefix(position);
-            }
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             // parse required version
             // if (cursor == tagEnd) {
             //     std::cerr << "parser error: Missing space after before version in XML declaration\n";
@@ -343,10 +332,7 @@ int main() {
             }
             const std::string_view version(contents.substr(0, valueEndPos));
             contents.remove_prefix(valueEndPos + 1);
-            if (isspace(contents.front())) {
-                auto position = contents.find_first_not_of(SPACE_CHARS);
-                contents.remove_prefix(position);
-            }
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             // parse optional encoding and standalone attributes
             std::optional<std::string_view> encoding;
             std::optional<std::string_view> standalone;
@@ -428,7 +414,7 @@ int main() {
             // parse processing instruction
             int position = contents.find("?>"sv);
             if (position == contents.npos) {
-                int bytesRead = refillBuffer(contents, buffer);
+                int bytesRead = refillBuffer(buffer, contents);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -459,7 +445,7 @@ int main() {
             // parse end tag
             if (contents.size() < 100) {
                 if (std::none_of(contents.begin(), contents.end(), [] (char c) { return c =='>'; })) {
-                    int bytesRead = refillBuffer(contents, buffer);
+                    int bytesRead = refillBuffer(buffer, contents);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
@@ -500,7 +486,7 @@ int main() {
             // parse start tag
             if (contents.size() < 200) {
                 if (std::none_of(contents.begin(), contents.end(), [] (char c) { return c =='>'; })) {
-                    int bytesRead = refillBuffer(contents, buffer);
+                    int bytesRead = refillBuffer(buffer, contents);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
