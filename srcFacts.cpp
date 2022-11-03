@@ -396,11 +396,12 @@ int main() {
             std::optional<std::string_view> standalone;
             if (cursor != (tagEnd - 1)) {
                 nameEnd = std::find(cursor, tagEnd, '=');
-                if (nameEnd == tagEnd) {
-                    std::cerr << "parser error: Incomplete attribute in XML declaration\n";
-                    return 1;
-                }
-                const std::string_view attr2(std::addressof(*cursor), std::distance(cursor, nameEnd));
+                auto nameEndPos = contents.find('=');
+                // if (nameEnd == tagEnd) {
+                //     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
+                //     return 1;
+                // }
+                const std::string_view attr2(nameEndPos);
                 contents.remove_prefix(std::distance(cursor, nameEnd) + 1);
                 cursor = std::next(nameEnd);
                 char delimiter2 = *cursor;
