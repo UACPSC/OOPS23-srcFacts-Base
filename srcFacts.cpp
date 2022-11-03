@@ -515,9 +515,7 @@ int main() {
                 ++classCount;
             }
             content.remove_prefix(nameEndPosition);
-            if (content.front() != '>') {
-                content.remove_prefix(content.find_first_not_of(WHITESPACE));
-            }
+            content.remove_prefix(content.find_first_not_of(WHITESPACE));
             if (content.front() == '>') {
                 content.remove_prefix(">"sv.size());
                 ++depth;
