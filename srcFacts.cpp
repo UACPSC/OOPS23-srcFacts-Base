@@ -63,7 +63,10 @@ constexpr auto WHITESPACE = " \n\t\r"sv;
     @retval 0 EOF
     @retval -1 Read error
 */
-int refillBuffer(std::string& buffer, std::string_view& contents) {
+int refillBuffer(std::string_view& contents) {
+
+    // initialize the buffer at first use
+    static std::string buffer(BUFFER_SIZE, ' ');
 
     // move unprocessed characters in contents to start of the buffer
     std::copy(contents.cbegin(), contents.cend(), buffer.begin());
@@ -125,13 +128,12 @@ int main() {
     std::string_view inTagPrefix;
     std::string_view inTagLocalName;
     bool isArchive = false;
-    std::string buffer(BUFFER_SIZE, ' ');
     std::string_view contents;
     TRACE("START DOCUMENT");
     while (true) {
         if (contents.size() < 5) {
             // refill buffer and adjust iterator
-            int bytesRead = refillBuffer(buffer, contents);
+            int bytesRead = refillBuffer(contents);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
                 return 1;
@@ -283,7 +285,7 @@ int main() {
             // parse XML declaration
             int tagEndPosition = contents.find('>');
             if (tagEndPosition == contents.npos) {
-                int bytesRead = refillBuffer(buffer, contents);
+                int bytesRead = refillBuffer(contents);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -398,7 +400,7 @@ int main() {
             // parse processing instruction
             int tagEndPosition = contents.find("?>"sv);
             if (tagEndPosition == contents.npos) {
-                int bytesRead = refillBuffer(buffer, contents);
+                int bytesRead = refillBuffer(contents);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -427,7 +429,7 @@ int main() {
             // parse end tag
             if (contents.size() < 100) {
                 if (std::none_of(contents.cbegin(), contents.cend(), [] (char c) { return c =='>'; })) {
-                    int bytesRead = refillBuffer(buffer, contents);
+                    int bytesRead = refillBuffer(contents);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
@@ -468,7 +470,7 @@ int main() {
             // parse start tag
             if (contents.size() < 200) {
                 if (std::none_of(contents.cbegin(), contents.cend(), [] (char c) { return c =='>'; })) {
-                    int bytesRead = refillBuffer(buffer, contents);
+                    int bytesRead = refillBuffer(contents);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
