@@ -157,8 +157,7 @@ int main() {
             }
             const std::string_view prefix(contents.substr(0, prefixSize));
             contents.remove_prefix(nameEndPos + 1);
-            auto position = contents.find_first_not_of(SPACE_CHARS);
-            contents.remove_prefix(position);
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             if (contents.empty()) {
                 std::cerr << "parser error : incomplete namespace\n";
                 return 1;
@@ -177,8 +176,7 @@ int main() {
             const std::string_view uri(contents.substr(0, valueEndPos));
             TRACE("NAMESPACE", "prefix", prefix, "uri", uri);
             contents.remove_prefix(valueEndPos + 1);
-            position = contents.find_first_not_of(SPACE_CHARS);
-            contents.remove_prefix(position);
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             if (contents[0] == '>') {
                 contents.remove_prefix(1);
                 inTag = false;
@@ -254,8 +252,7 @@ int main() {
                 contents.remove_prefix(4);
             }
             constexpr std::string_view endComment = "-->"sv;
-            int position = contents.find(endComment);
-            auto tagEndPos = position;
+            int tagEndPos = contents.find(endComment);
             inXMLComment = tagEndPos == contents.size();
             const std::string_view comment(contents.substr(0, tagEndPos));
             TRACE("COMMENT", "comment", comment);
@@ -367,8 +364,7 @@ int main() {
                     return 1;
                 }
                 contents.remove_prefix(valueEndPos + 1);
-                auto position = contents.find_first_not_of(SPACE_CHARS);
-                contents.remove_prefix(position);
+                contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             }
             // FIX
             if (true) { // cursor != (tagEnd - endXMLDecl.size() + 1)) {
@@ -399,35 +395,28 @@ int main() {
                     return 1;
                 }
                 contents.remove_prefix(valueEndPos + 1);
-                if (isspace(contents.front())) {
-                    auto position = contents.substr(0, tagEndPos).find(SPACE_CHARS);
-                    contents.remove_prefix(position);
-                }
-//                cursor = std::find_if_not(cursor, tagEnd, isspace);
+                contents.remove_prefix(contents.substr(0, tagEndPos).find_first_not_of(SPACE_CHARS));
             }
             TRACE("XML DECLARATION", "version", version, "encoding", (encoding ? *encoding : ""), "standalone", (standalone ? *standalone : ""));
             contents.remove_prefix(endXMLDecl.size());
-            auto position = contents.find_first_not_of(SPACE_CHARS);
-            contents.remove_prefix(position);
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
 
         } else if (contents[1] == '?' && contents[0] == '<') {
             // parse processing instruction
-            int position = contents.find("?>"sv);
-            if (position == contents.npos) {
+            int tagEndPos = contents.find("?>"sv);
+            if (tagEndPos == contents.npos) {
                 int bytesRead = refillBuffer(buffer, contents);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
                 }
                 totalBytes += bytesRead;
-                position = contents.find("?>"sv);
-                if (position == contents.npos) {
+                tagEndPos = contents.find("?>"sv);
+                if (tagEndPos == contents.npos) {
                     std::cerr << "parser error: Incomplete XML declaration\n";
                     return 1;
                 }
             }
-            // std::string::const_iterator tagEnd = cursor + position;
-            auto tagEndPos = position;
             contents.remove_prefix(2);
             int nameEndPos = std::distance(&contents[0], std::find_if_not(contents.cbegin(), contents.cend(), [] (char c) { return tagNameMask[c]; }));
             // FIX
@@ -539,9 +528,7 @@ int main() {
             }
             contents.remove_prefix(nameEndPos);
             if (contents.front() != '>') {
-                auto position = contents.find_first_not_of(SPACE_CHARS);
-                contents.remove_prefix(position);
-                // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
+                contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             }
             if (contents.front() == '>') {
                 contents.remove_prefix(1);
@@ -557,9 +544,7 @@ int main() {
             }
         } else if (depth == 0) {
             // parse characters before or after XML
-            auto position = contents.find_first_not_of(SPACE_CHARS);
-            contents.remove_prefix(position);
-            // contents.remove_prefix(std::distance(cursor, std::find_if_not(cursor, cursorEnd, isspace)));
+            contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
         } else if (contents.front() == '&') {
             // parse character entity references
             std::string_view reference;
