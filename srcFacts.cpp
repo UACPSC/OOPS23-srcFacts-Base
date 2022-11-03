@@ -239,8 +239,7 @@ int main() {
                 TRACE("END TAG", "prefix", inTagPrefix, "qName", inTagQName, "localName", inTagLocalName);
                 inTag = false;
             }
-        } else if (inXMLComment || contents.compare("<!==") == 0) {
-        // } else if (inXMLComment || (contents[1] == '!' && contents[0] == '<' && contents[2] == '-' && contents[3] == '-')) {
+        } else if (inXMLComment || (contents[1] == '!' && contents[0] == '<' && contents[2] == '-' && contents[3] == '-')) {
             // parse XML comment
             if (contents.empty()) {
                 std::cerr << "parser error : Unterminated XML comment\n";
