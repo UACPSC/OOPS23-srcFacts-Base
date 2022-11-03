@@ -258,13 +258,9 @@ int main() {
             if (!inXMLComment) {
                 content.remove_prefix(1 + "-->"sv.size());
             }
-        } else if (inCDATA || (content[1] == '!' && content[0] == '<' && content[2] == '[' && content[3] == 'C' && content[4] == 'D'
-            && content[5] == 'A' && content[6] == 'T' && content[7] == 'A' && content[8] == '[')) {
+        } else if (inCDATA || (content[1] == '!' && content[0] == '<' && content[2] == '[' && content[3] == 'C' && content[4] == 'D' &&
+                               content[5] == 'A' && content[6] == 'T' && content[7] == 'A' && content[8] == '[')) {
             // parse CDATA
-            if (content.empty()) {
-                std::cerr << "parser error : Unterminated CDATA\n";
-                return 1;
-            }
             if (!inCDATA) {
                 content.remove_prefix("<![CDATA["sv.size());
             }
@@ -330,10 +326,10 @@ int main() {
             if (true) { //cursor != (tagEnd - 1)) {
                 // nameEnd = std::find(cursor, tagEnd, '=');
                 std::size_t nameEndPosition = content.find('=');
-                // if (nameEnd == tagEnd) {
-                //     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
-                //     return 1;
-                // }
+                if (nameEndPosition == content.npos) {
+                    std::cerr << "parser error: Incomplete attribute in XML declaration\n";
+                    return 1;
+                }
                 const std::string_view attr2(content.substr(0, nameEndPosition));
                 content.remove_prefix(nameEndPosition + "="sv.size());
                 char delimiter2 = content.front();
@@ -342,12 +338,11 @@ int main() {
                     return 1;
                 }
                 content.remove_prefix("\""sv.size());
-                // auto valueEnd = std::find(cursor, tagEnd, delimiter2);
                 std::size_t valueEndPosition = content.find(delimiter2);
-                // if (valueEnd == tagEnd) {
-                //     std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
-                //     return 1;
-                // }
+                if (valueEndPosition == content.npos) {
+                    std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
+                    return 1;
+                }
                 if (attr2 == "encoding"sv) {
                     encoding = std::string_view(content.substr(0, valueEndPosition));
                 } else if (attr2 == "standalone"sv) {
@@ -466,6 +461,7 @@ int main() {
             TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
         } else if (content.front() == '<') {
             // parse start tag
+            content.remove_prefix("<"sv.size());
             if (content.size() < 200) {
                 if (std::none_of(content.cbegin(), content.cend(), [] (char c) { return c =='>'; })) {
                     int bytesRead = refillBuffer(content);
@@ -481,7 +477,6 @@ int main() {
                     }
                 }
             }
-            content.remove_prefix(":"sv.size());
             if (content.front() == ':') {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
