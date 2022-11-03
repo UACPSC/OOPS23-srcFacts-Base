@@ -425,8 +425,9 @@ int main() {
             content.remove_prefix("?>"sv.size());
         } else if (content[1] == '/' && content[0] == '<') {
             // parse end tag
+            content.remove_prefix("</"sv.size());
             if (content.size() < 100) {
-                if (std::none_of(content.cbegin(), content.cend(), [] (char c) { return c =='>'; })) {
+                if (content.find('>') == content.npos) {
                     int bytesRead = refillBuffer(content);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
@@ -434,13 +435,12 @@ int main() {
                     }
                     totalBytes += bytesRead;
                     // @TODO start search after initial sed
-                    if (std::none_of(content.cbegin(), content.cend(), [] (char c) { return c =='>'; })) {
+                    if (content.substr(0, bytesRead).find('>') == content.npos) {
                         std::cerr << "parser error: Incomplete element end tag\n";
                         return 1;
                     }
                 }
             }
-            content.remove_prefix("</"sv.size());
             if (content.front() == ':') {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
@@ -460,7 +460,7 @@ int main() {
                 colonPosition = 0;
             }
             const std::string_view prefix(qName.substr(0, colonPosition));
-            const std::string_view localName(qName.substr(colonPosition + 1));
+            const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
             content.remove_prefix(nameEndPosition + ">"sv.size());
             --depth;
             TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
