@@ -50,7 +50,7 @@ const int BUFFER_SIZE = 16 * 16 * 4096;
 
 const std::bitset<128> tagNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
 
-constexpr auto SPACE_CHARS = " \n\t\r\v\f"sv;
+constexpr auto SPACE_CHARS = " \n\t\r"sv;
 
 /*
     Refill the buffer preserving the unused data.
