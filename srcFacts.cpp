@@ -66,41 +66,25 @@ constexpr auto SPACE_CHARS = " \n\t\r\v\f"sv;
 */
 int refillBuffer(std::string_view& contents, std::string& buffer) {
 
-    std::string::const_iterator cursor;
-    std::string::const_iterator cursorEnd;
-
-    // number of unprocessed characters [cursor, cursorEnd)
-    size_t unprocessed = contents.size();
-
-    // move unprocessed characters, [cursor, cursorEnd), to start of the buffer
+    // move unprocessed characters in contents to start of the buffer
     std::copy(contents.begin(), contents.end(), buffer.begin());
-
-    // reset cursors
-    cursor = buffer.begin();
-    cursorEnd = cursor + unprocessed;
 
     // read in whole blocks
     ssize_t readBytes = 0;
-    while (((readBytes = READ(0, static_cast<void*>(buffer.data() + unprocessed),
-        std::distance(cursorEnd, buffer.cend()))) == -1) && (errno == EINTR)) {
+    while (((readBytes = READ(0, static_cast<void*>(buffer.data() + contents.size()),
+        buffer.size() - contents.size())) == -1) && (errno == EINTR)) {
     }
     if (readBytes == -1)
         // error in read
         return -1;
     if (readBytes == 0) {
         // EOF
-        cursor = buffer.cend();
-        cursorEnd = buffer.cend();
         contents = ""sv;
         return 0;
     }
 
-    // adjust the end of the cursor to the new bytes
-    cursorEnd += readBytes;
-
-    contents = std::string_view(&buffer[0], unprocessed + readBytes);
-
-    cursor = cursorEnd;
+    // set contents to the start of the buffer
+    contents = std::string_view(&buffer[0], contents.size() + readBytes);
 
     return readBytes;
 }
@@ -315,7 +299,6 @@ int main() {
             // parse XML declaration
             constexpr std::string_view startXMLDecl = "<?xml";
             constexpr std::string_view endXMLDecl = "?>";
-            // std::string::const_iterator tagEnd = std::find(cursor, cursorEnd, '>');
             auto tagEndPos = contents.find('>');
             if (tagEndPos == contents.npos) {
                 int bytesRead = refillBuffer(contents, buffer);
