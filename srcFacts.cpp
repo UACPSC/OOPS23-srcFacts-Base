@@ -538,7 +538,7 @@ int main() {
                 inTag = true;
             }
         } else if (depth == 0) {
-            // parse characters before or after XML
+            // ignore whitespace before or after XML
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
         } else if (content.front() == '&') {
             // parse character entity references
