@@ -281,8 +281,6 @@ int main() {
 
         } else if (contents[1] == '?' && contents[0] == '<' && contents[1] == '?' && contents[2] == 'x' && contents[3] == 'm' && contents[4] == 'l' && contents[5] == ' ') {
             // parse XML declaration
-            constexpr std::string_view startXMLDecl = "<?xml";
-            constexpr std::string_view endXMLDecl = "?>";
             int tagEndPosition = contents.find('>');
             if (tagEndPosition == contents.npos) {
                 int bytesRead = refillBuffer(buffer, contents);
@@ -296,7 +294,7 @@ int main() {
                     return 1;
                 }
             }
-            contents.remove_prefix(startXMLDecl.size());
+            contents.remove_prefix("<?xml"sv.size());
             contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
             // parse required version
             // if (cursor == tagEnd) {
@@ -393,7 +391,7 @@ int main() {
                 contents.remove_prefix(contents.substr(0, tagEndPosition).find_first_not_of(SPACE_CHARS));
             }
             TRACE("XML DECLARATION", "version", version, "encoding", (encoding ? *encoding : ""), "standalone", (standalone ? *standalone : ""));
-            contents.remove_prefix(endXMLDecl.size());
+            contents.remove_prefix("?>"sv.size());
             contents.remove_prefix(contents.find_first_not_of(SPACE_CHARS));
 
         } else if (contents[1] == '?' && contents[0] == '<') {
