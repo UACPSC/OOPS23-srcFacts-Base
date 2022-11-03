@@ -144,12 +144,12 @@ int main() {
         } else if (inTag && content[0] == 'x' && content[1] == 'm' && content[2] == 'l' && content[3] == 'n' && content[4] == 's' && (content[5] == ':' || content[5] == '=')) {
             // parse XML namespace
             content.remove_prefix("xmlns"sv.size());
-            int nameEndPosition = content.find('=');
+            std::size_t nameEndPosition = content.find('=');
             if (nameEndPosition == content.npos) {
                 std::cerr << "parser error : incomplete namespace\n";
                 return 1;
             }
-            int prefixSize = 0;
+            std::size_t prefixSize = 0;
             if (content.front() == ':') {
                 content.remove_prefix(":"sv.size());
                 --nameEndPosition;
@@ -168,7 +168,7 @@ int main() {
                 return 1;
             }
             content.remove_prefix("\""sv.size());
-            int valueEndPosition = content.find(delimiter);
+            std::size_t valueEndPosition = content.find(delimiter);
             if (valueEndPosition == content.npos) {
                 std::cerr << "parser error : incomplete namespace\n";
                 return 1;
@@ -188,7 +188,7 @@ int main() {
             }
         } else if (inTag) {
             // parse attribute
-            int nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Empty attribute name" << '\n';
                 return 1;
@@ -221,7 +221,7 @@ int main() {
                 return 1;
             }
             content.remove_prefix("\""sv.size());
-            int valueEndPosition = content.find(delimiter); //std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t valueEndPosition = content.find(delimiter); //std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             if (valueEndPosition == content.size()) {
                 std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
                 return 1;
@@ -250,7 +250,7 @@ int main() {
             if (!inXMLComment) {
                 content.remove_prefix("<!=="sv.size());
             }
-            int tagEndPosition = content.find("-->"sv);
+            std::size_t tagEndPosition = content.find("-->"sv);
             inXMLComment = tagEndPosition == content.size();
             const std::string_view comment(content.substr(0, tagEndPosition));
             TRACE("COMMENT", "comment", comment);
@@ -268,7 +268,7 @@ int main() {
             if (!inCDATA) {
                 content.remove_prefix("<![CDATA["sv.size());
             }
-            int tagEndPosition = content.find("]]>"sv);
+            std::size_t tagEndPosition = content.find("]]>"sv);
             inCDATA = tagEndPosition == content.size();
             const std::string_view characters(content.substr(0, tagEndPosition));
             TRACE("CDATA", "characters", characters);
@@ -281,7 +281,7 @@ int main() {
 
         } else if (content[1] == '?' && content[0] == '<' && content[1] == '?' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
             // parse XML declaration
-            int tagEndPosition = content.find('>');
+            std::size_t tagEndPosition = content.find('>');
             if (tagEndPosition == content.npos) {
                 int bytesRead = refillBuffer(content);
                 if (bytesRead < 0) {
@@ -302,7 +302,7 @@ int main() {
             //     return 1;
             // }
             // std::string::const_iterator nameEnd = std::find(cursor, tagEnd, '=');
-            int nameEndPosition = content.find('=');
+            std::size_t nameEndPosition = content.find('=');
             const std::string_view attr(content.substr(0, nameEndPosition));
             content.remove_prefix(nameEndPosition + "="sv.size());
             const char delimiter = content.front();
@@ -311,7 +311,7 @@ int main() {
                 return 1;
             }
             content.remove_prefix("\""sv.size());
-            int valueEndPosition = content.find(delimiter);
+            std::size_t valueEndPosition = content.find(delimiter);
             if (valueEndPosition == content.npos) {
                 std::cerr << "parser error: Invalid end delimiter for version in XML declaration\n";
                 return 1;
@@ -329,7 +329,7 @@ int main() {
             // FIX
             if (true) { //cursor != (tagEnd - 1)) {
                 // nameEnd = std::find(cursor, tagEnd, '=');
-                int nameEndPosition = content.find('=');
+                std::size_t nameEndPosition = content.find('=');
                 // if (nameEnd == tagEnd) {
                 //     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
                 //     return 1;
@@ -343,7 +343,7 @@ int main() {
                 }
                 content.remove_prefix("\""sv.size());
                 // auto valueEnd = std::find(cursor, tagEnd, delimiter2);
-                int valueEndPosition = content.find(delimiter2);
+                std::size_t valueEndPosition = content.find(delimiter2);
                 // if (valueEnd == tagEnd) {
                 //     std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
                 //     return 1;
@@ -362,7 +362,7 @@ int main() {
             // FIX
             if (true) { // cursor != (tagEnd - endXMLDecl.size() + 1)) {
                 // nameEnd = std::find(cursor, tagEnd, '=');
-                int nameEndPosition = content.substr(0, tagEndPosition).find('=');
+                std::size_t nameEndPosition = content.substr(0, tagEndPosition).find('=');
                 if (nameEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
                     return 1;
@@ -376,7 +376,7 @@ int main() {
                 }
                 content.remove_prefix("\""sv.size());
                 // auto valueEnd = std::find(cursor, tagEnd, delimiter2);
-                int valueEndPosition = content.substr(0, tagEndPosition).find(delimiter2);
+                std::size_t valueEndPosition = content.substr(0, tagEndPosition).find(delimiter2);
                 if (valueEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
                     return 1;
@@ -396,7 +396,7 @@ int main() {
 
         } else if (content[1] == '?' && content[0] == '<') {
             // parse processing instruction
-            int tagEndPosition = content.find("?>"sv);
+            std::size_t tagEndPosition = content.find("?>"sv);
             if (tagEndPosition == content.npos) {
                 int bytesRead = refillBuffer(content);
                 if (bytesRead < 0) {
@@ -411,7 +411,7 @@ int main() {
                 }
             }
             content.remove_prefix("<?"sv.size());
-            int nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             // FIX
             if (nameEndPosition == 0) {
                 std::cerr << "parser error : Unterminated processing instruction '" << content.substr(0, nameEndPosition) << "'\n";
@@ -445,7 +445,7 @@ int main() {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
             }
-            int nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated end tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -486,7 +486,7 @@ int main() {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
             }
-            int nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(&content[0], std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated start tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -560,7 +560,7 @@ int main() {
 
         } else {
             // parse character non-entity references
-            int tagEndPosition = content.find_first_of("<&");
+            std::size_t tagEndPosition = content.find_first_of("<&");
             const std::string_view characters(content.substr(0, tagEndPosition));
             TRACE("CHARACTERS", "characters", characters);
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
