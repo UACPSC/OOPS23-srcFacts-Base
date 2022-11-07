@@ -93,9 +93,8 @@ int refillBuffer(std::string_view& content) {
 // trace parsing
 #ifdef TRACE
 #undef TRACE
-#define HEADER(m) std::clog << std::setw(10) << std::left << m <<"\t"
+#define HEADER(m) std::clog << std::setw(10) << std::left << m << '\t'
 #define FIELD(l, n) l << ":|" << n << "| "
-#define FIELD2(l1, n1, l2, n2) FIELD(l1,n1) << FIELD(l2,n2)
 #define TRACE0(m)
 #define TRACE1(m, l1, n1) HEADER(m) << FIELD(l1,n1) << '\n';
 #define TRACE2(m, l1, n1, l2, n2) HEADER(m) << FIELD(l1,n1) << FIELD(l2,n2) << '\n';
