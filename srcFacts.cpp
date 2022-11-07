@@ -220,7 +220,7 @@ int main() {
             }
             content.remove_prefix("\""sv.size());
             std::size_t valueEndPosition = content.find(delimiter);
-            if (valueEndPosition == content.size()) {
+            if (valueEndPosition == content.npos) {
                 std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
                 return 1;
             }
