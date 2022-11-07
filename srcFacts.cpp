@@ -175,7 +175,7 @@ int main() {
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
             content.remove_prefix(tagEndPosition);
             content.remove_prefix("]]>"sv.size());
-        } else if (content[1] == '?' && content[0] == '<' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
+        } else if (depth == 0 && content[1] == '?' && content[0] == '<' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
             // parse XML declaration
             std::size_t tagEndPosition = content.find('>');
             if (tagEndPosition == content.npos) {
