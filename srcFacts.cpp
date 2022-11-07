@@ -107,7 +107,7 @@ int refillBuffer(std::string_view& content) {
 #endif
 
 int main() {
-    const auto start = std::chrono::steady_clock::now();
+    const auto startTime = std::chrono::steady_clock::now();
     std::string url;
     int textsize = 0;
     int loc = 0;
@@ -147,7 +147,7 @@ int main() {
             std::size_t tagEndPosition = content.find("-->"sv);
             inXMLComment = tagEndPosition == content.size();
             const std::string_view comment(content.substr(0, tagEndPosition));
-            TRACE("COMMENT", "comment", comment);
+            TRACE("COMMENT", "content", comment);
             content.remove_prefix(tagEndPosition);
             if (!inXMLComment) {
                 content.remove_prefix(1 + "-->"sv.size());
@@ -545,9 +545,9 @@ int main() {
         }
     }
     TRACE("END DOCUMENT");
-    const auto finish = std::chrono::steady_clock::now();
-    const auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double> >(finish - start).count();
-    const double mlocPerSec = loc / elapsed_seconds / 1000000;
+    const auto finishTime = std::chrono::steady_clock::now();
+    const auto elapsedSeconds = std::chrono::duration_cast<std::chrono::duration<double> >(finishTime - startTime).count();
+    const double MLocPerSecond = loc / elapsedSeconds / 1000000;
     int files = unitCount;
     if (isArchive)
         --files;
@@ -568,7 +568,7 @@ int main() {
     std::clog.precision(3);
     std::clog << '\n';
     std::clog << totalBytes  << " bytes\n";
-    std::clog << elapsed_seconds << " sec\n";
-    std::clog << mlocPerSec << " MLOC/sec\n";
+    std::clog << elapsedSeconds << " sec\n";
+    std::clog << MLocPerSecond << " MLOC/sec\n";
     return 0;
 }
