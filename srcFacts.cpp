@@ -363,7 +363,7 @@ int main() {
             // parse start tag
             content.remove_prefix("<"sv.size());
             if (content.size() < 200) {
-                if (std::none_of(content.cbegin(), content.cend(), [] (char c) { return c =='>'; })) {
+                if (content.find('>') == content.npos) {
                     int bytesRead = refillBuffer(content);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
@@ -371,7 +371,7 @@ int main() {
                     }
                     totalBytes += bytesRead;
                     // @TODO start search after initial sed
-                    if (std::none_of(content.cbegin(), content.cend(), [] (char c) { return c =='>'; })) {
+                    if (content.find('>') == content.npos) {
                         std::cerr << "parser error: Incomplete element start tag\n";
                         return 1;
                     }
