@@ -57,7 +57,6 @@ constexpr auto WHITESPACE = " \n\t\r"sv;
     Current content is shifted left and new data
     appended to the rest of the content.
 
-    @param[in, out] buffer Container for characters
     @param[in, out] content View of buffer
     @return Number of bytes read
     @retval 0 EOF
