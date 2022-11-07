@@ -573,17 +573,19 @@ int main() {
     std::cout << "# srcFacts: " << url << '\n';
     std::cout << "| Measure      | " << std::setw(valueWidth + 3) << "Value |\n";
     std::cout << "|:-------------|-" << std::setw(valueWidth + 3) << std::setfill('-') << ":|\n" << std::setfill(' ');
-    std::cout << "| srcML bytes  | " << std::setw(valueWidth) << totalBytes          << " |\n";
-    std::cout << "| Characters   | " << std::setw(valueWidth) << textsize       << " |\n";
-    std::cout << "| Files        | " << std::setw(valueWidth) << files          << " |\n";
-    std::cout << "| LOC          | " << std::setw(valueWidth) << loc            << " |\n";
+    std::cout << "| Characters   | " << std::setw(valueWidth) << textsize      << " |\n";
+    std::cout << "| LOC          | " << std::setw(valueWidth) << loc           << " |\n";
+    std::cout << "| Files        | " << std::setw(valueWidth) << files         << " |\n";
     std::cout << "| Classes      | " << std::setw(valueWidth) << classCount    << " |\n";
     std::cout << "| Functions    | " << std::setw(valueWidth) << functionCount << " |\n";
     std::cout << "| Declarations | " << std::setw(valueWidth) << declCount     << " |\n";
     std::cout << "| Expressions  | " << std::setw(valueWidth) << exprCount     << " |\n";
     std::cout << "| Comments     | " << std::setw(valueWidth) << commentCount  << " |\n";
+    std::clog.imbue(std::locale{""});
+    std::clog.precision(3);
     std::clog << '\n';
-    std::clog << std::setprecision(3) << elapsed_seconds << " sec\n";
-    std::clog << std::setprecision(3) << mlocPerSec << " MLOC/sec\n";
+    std::clog << totalBytes  << " bytes\n";
+    std::clog << elapsed_seconds << " sec\n";
+    std::clog << mlocPerSec << " MLOC/sec\n";
     return 0;
 }
