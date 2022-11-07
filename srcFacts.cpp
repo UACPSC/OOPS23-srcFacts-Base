@@ -121,7 +121,6 @@ int main() {
     long totalBytes = 0;
     bool inXMLComment = false;
     bool inCDATA = false;
-    bool isArchive = false;
     std::string_view content;
     TRACE("START DOCUMENT");
     while (true) {
@@ -403,8 +402,6 @@ int main() {
                 ++functionCount;
             } else if (localName == "unit"sv) {
                 ++unitCount;
-                if (depth == 1)
-                    isArchive = true;
             } else if (localName == "class"sv) {
                 ++classCount;
             }
@@ -548,9 +545,7 @@ int main() {
     const auto finishTime = std::chrono::steady_clock::now();
     const auto elapsedSeconds = std::chrono::duration_cast<std::chrono::duration<double> >(finishTime - startTime).count();
     const double MLocPerSecond = loc / elapsedSeconds / 1000000;
-    int files = unitCount;
-    if (isArchive)
-        --files;
+    int files = std::max(unitCount - 1, 1);
     std::cout.imbue(std::locale{""});
     int valueWidth = std::max(5, static_cast<int>(log10(totalBytes) * 1.3 + 1));
     std::cout << "# srcFacts: " << url << '\n';
