@@ -119,8 +119,6 @@ int main() {
     int commentCount = 0;
     int depth = 0;
     long totalBytes = 0;
-    bool inXMLComment = false;
-    bool inCDATA = false;
     std::string_view content;
     TRACE("START DOCUMENT");
     while (true) {
@@ -131,43 +129,52 @@ int main() {
                 std::cerr << "parser error : File input error\n";
                 return 1;
             }
-            totalBytes += bytesRead;
-            if (!inXMLComment && !inCDATA && content.empty())
+            if (bytesRead == 0)
                 break;
-        } else if (inXMLComment || (content[1] == '!' && content[0] == '<' && content[2] == '-' && content[3] == '-')) {
+            totalBytes += bytesRead;
+        } else if (content[1] == '!' && content[0] == '<' && content[2] == '-' && content[3] == '-') {
             // parse XML comment
             if (content.empty()) {
                 std::cerr << "parser error : Unterminated XML comment\n";
                 return 1;
             }
-            if (!inXMLComment) {
-                content.remove_prefix("<!=="sv.size());
-            }
+            content.remove_prefix("<!=="sv.size());
             std::size_t tagEndPosition = content.find("-->"sv);
-            inXMLComment = tagEndPosition == content.size();
+            if (tagEndPosition == content.npos) {
+                // refill buffer and adjust iterator
+                int bytesRead = refillBuffer(content);
+                if (bytesRead < 0) {
+                    std::cerr << "parser error : File input error\n";
+                    return 1;
+                }
+                totalBytes += bytesRead;
+                tagEndPosition = content.find("-->"sv);
+            }
             const std::string_view comment(content.substr(0, tagEndPosition));
             TRACE("COMMENT", "content", comment);
             content.remove_prefix(tagEndPosition);
-            if (!inXMLComment) {
-                content.remove_prefix(1 + "-->"sv.size());
-            }
-        } else if (inCDATA || (content[1] == '!' && content[0] == '<' && content[2] == '[' && content[3] == 'C' && content[4] == 'D' &&
-                               content[5] == 'A' && content[6] == 'T' && content[7] == 'A' && content[8] == '[')) {
+            content.remove_prefix(1 + "-->"sv.size());
+        } else if (content[1] == '!' && content[0] == '<' && content[2] == '[' && content[3] == 'C' && content[4] == 'D' &&
+                   content[5] == 'A' && content[6] == 'T' && content[7] == 'A' && content[8] == '[') {
             // parse CDATA
-            if (!inCDATA) {
-                content.remove_prefix("<![CDATA["sv.size());
-            }
+            content.remove_prefix("<![CDATA["sv.size());
             std::size_t tagEndPosition = content.find("]]>"sv);
-            inCDATA = tagEndPosition == content.size();
+            if (tagEndPosition == content.npos) {
+                // refill buffer and adjust iterator
+                int bytesRead = refillBuffer(content);
+                if (bytesRead < 0) {
+                    std::cerr << "parser error : File input error\n";
+                    return 1;
+                }
+                totalBytes += bytesRead;
+                tagEndPosition = content.find("]]>"sv);
+            }
             const std::string_view characters(content.substr(0, tagEndPosition));
             TRACE("CDATA", "characters", characters);
             textSize += static_cast<int>(characters.size());
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
             content.remove_prefix(tagEndPosition);
-            if (!inCDATA) {
-                content.remove_prefix("]]>"sv.size() + 1);
-            }
-
+            content.remove_prefix("]]>"sv.size() + 1);
         } else if (content[1] == '?' && content[0] == '<' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
             // parse XML declaration
             std::size_t tagEndPosition = content.find('>');
@@ -533,8 +540,8 @@ int main() {
 
         } else {
             // parse character non-entity references
-            std::size_t tagEndPosition = content.find_first_of("<&");
-            const std::string_view characters(content.substr(0, tagEndPosition));
+            std::size_t characterEndPosition = content.find_first_of("<&");
+            const std::string_view characters(content.substr(0, characterEndPosition));
             TRACE("CHARACTERS", "characters", characters);
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
             textSize += static_cast<int>(characters.size());
