@@ -194,7 +194,7 @@ int main() {
             const std::string_view qName(content.substr(0, nameEndPosition));
             size_t colonPosition = qName.find(':');
             if (colonPosition == 0) {
-                std::cerr << "parser error : Invalid attribute name " << qName << '\n';
+                std::cerr << "parser error : attribute" << qName  << " starts with a ':'\n";
                 return 1;
             }
             if (colonPosition == qName.npos)
