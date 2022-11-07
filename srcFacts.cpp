@@ -153,7 +153,7 @@ int main() {
             const std::string_view comment(content.substr(0, tagEndPosition));
             TRACE("COMMENT", "content", comment);
             content.remove_prefix(tagEndPosition);
-            content.remove_prefix(1 + "-->"sv.size());
+            content.remove_prefix("-->"sv.size());
         } else if (content[1] == '!' && content[0] == '<' && content[2] == '[' && content[3] == 'C' && content[4] == 'D' &&
                    content[5] == 'A' && content[6] == 'T' && content[7] == 'A' && content[8] == '[') {
             // parse CDATA
@@ -174,7 +174,7 @@ int main() {
             textSize += static_cast<int>(characters.size());
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
             content.remove_prefix(tagEndPosition);
-            content.remove_prefix("]]>"sv.size() + 1);
+            content.remove_prefix("]]>"sv.size());
         } else if (content[1] == '?' && content[0] == '<' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
             // parse XML declaration
             std::size_t tagEndPosition = content.find('>');
@@ -550,8 +550,8 @@ int main() {
     }
     TRACE("END DOCUMENT");
     const auto finishTime = std::chrono::steady_clock::now();
-    const auto elapsedSeconds = std::chrono::duration_cast<std::chrono::duration<double> >(finishTime - startTime).count();
-    const double MLocPerSecond = loc / elapsedSeconds / 1000000;
+    const auto elapsedSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(finishTime - startTime).count();
+    const double MLOCPerSecond = loc / elapsedSeconds / 1000000;
     int files = std::max(unitCount - 1, 1);
     std::cout.imbue(std::locale{""});
     int valueWidth = std::max(5, static_cast<int>(log10(totalBytes) * 1.3 + 1));
@@ -571,6 +571,6 @@ int main() {
     std::clog << '\n';
     std::clog << totalBytes  << " bytes\n";
     std::clog << elapsedSeconds << " sec\n";
-    std::clog << MLocPerSecond << " MLOC/sec\n";
+    std::clog << MLOCPerSecond << " MLOC/sec\n";
     return 0;
 }
