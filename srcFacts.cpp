@@ -109,7 +109,7 @@ int refillBuffer(std::string_view& content) {
 int main() {
     const auto startTime = std::chrono::steady_clock::now();
     std::string url;
-    int textsize = 0;
+    int textSize = 0;
     int loc = 0;
     int exprCount = 0;
     int functionCount = 0;
@@ -162,7 +162,7 @@ int main() {
             inCDATA = tagEndPosition == content.size();
             const std::string_view characters(content.substr(0, tagEndPosition));
             TRACE("CDATA", "characters", characters);
-            textsize += static_cast<int>(characters.size());
+            textSize += static_cast<int>(characters.size());
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
             content.remove_prefix(tagEndPosition);
             if (!inCDATA) {
@@ -532,7 +532,7 @@ int main() {
             }
             const std::string_view characters(reference);
             TRACE("CHARACTERS", "characters", characters);
-            ++textsize;
+            ++textSize;
 
         } else {
             // parse character non-entity references
@@ -540,7 +540,7 @@ int main() {
             const std::string_view characters(content.substr(0, tagEndPosition));
             TRACE("CHARACTERS", "characters", characters);
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
-            textsize += static_cast<int>(characters.size());
+            textSize += static_cast<int>(characters.size());
             content.remove_prefix(characters.size());
         }
     }
@@ -556,7 +556,7 @@ int main() {
     std::cout << "# srcFacts: " << url << '\n';
     std::cout << "| Measure      | " << std::setw(valueWidth + 3) << "Value |\n";
     std::cout << "|:-------------|-" << std::setw(valueWidth + 3) << std::setfill('-') << ":|\n" << std::setfill(' ');
-    std::cout << "| Characters   | " << std::setw(valueWidth) << textsize      << " |\n";
+    std::cout << "| Characters   | " << std::setw(valueWidth) << textSize      << " |\n";
     std::cout << "| LOC          | " << std::setw(valueWidth) << loc           << " |\n";
     std::cout << "| Files        | " << std::setw(valueWidth) << files         << " |\n";
     std::cout << "| Classes      | " << std::setw(valueWidth) << classCount    << " |\n";
