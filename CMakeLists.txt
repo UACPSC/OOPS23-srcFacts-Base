@@ -34,7 +34,7 @@ endif()
 
 # Turn on warnings
 target_compile_options(srcfacts PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wno-unused-variable>
+     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall>
      $<$<CXX_COMPILER_ID:MSVC>: /W4>
 )
 

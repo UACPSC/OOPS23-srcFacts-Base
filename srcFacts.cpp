@@ -150,7 +150,7 @@ int main() {
                 totalBytes += bytesRead;
                 tagEndPosition = content.find("-->"sv);
             }
-            const std::string_view comment(content.substr(0, tagEndPosition));
+            [[maybe_unused]] const std::string_view comment(content.substr(0, tagEndPosition));
             TRACE("COMMENT", "content", comment);
             content.remove_prefix(tagEndPosition);
             content.remove_prefix("-->"sv.size());
@@ -216,7 +216,7 @@ int main() {
                 std::cerr << "parser error: Missing required first attribute version in XML declaration\n";
                 return 1;
             }
-            const std::string_view version(content.substr(0, valueEndPosition));
+            [[maybe_unused]] const std::string_view version(content.substr(0, valueEndPosition));
             content.remove_prefix(valueEndPosition + "\""sv.size());
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             // parse optional encoding and standalone attributes
@@ -312,9 +312,9 @@ int main() {
                 std::cerr << "parser error : Unterminated processing instruction '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
             }
-            const std::string_view target(content.substr(0, nameEndPosition));
+            [[maybe_unused]] const std::string_view target(content.substr(0, nameEndPosition));
             content.remove_prefix(nameEndPosition);
-            const std::string_view data(content.substr(0, tagEndPosition));
+            [[maybe_unused]] const std::string_view data(content.substr(0, tagEndPosition));
             TRACE("PI", "target", target, "data", data);
             content.remove_prefix(tagEndPosition);
             content.remove_prefix("?>"sv.size());
@@ -354,8 +354,8 @@ int main() {
             if (colonPosition == qName.npos) {
                 colonPosition = 0;
             }
-            const std::string_view prefix(qName.substr(0, colonPosition));
-            const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
+            [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
+            [[maybe_unused]] const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
             content.remove_prefix(nameEndPosition + ">"sv.size());
             --depth;
             TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
@@ -396,7 +396,7 @@ int main() {
                 std::cerr << "parser error: StartTag: invalid element name\n";
                 return 1;
             }
-            const std::string_view prefix(qName.substr(0, colonPosition));
+            [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
             const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0, nameEndPosition));
             TRACE("START TAG", "prefix", prefix, "qName", qName, "localName", localName);
             if (localName == "expr"sv) {
@@ -438,7 +438,7 @@ int main() {
                         --nameEndPosition;
                         prefixSize = nameEndPosition;
                     }
-                    const std::string_view prefix(content.substr(0, prefixSize));
+                    [[maybe_unused]] const std::string_view prefix(content.substr(0, prefixSize));
                     content.remove_prefix(nameEndPosition + "="sv.size());
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
                     if (content.empty()) {
@@ -456,7 +456,7 @@ int main() {
                         std::cerr << "parser error : incomplete namespace\n";
                         return 1;
                     }
-                    const std::string_view uri(content.substr(0, valueEndPosition));
+                    [[maybe_unused]] const std::string_view uri(content.substr(0, valueEndPosition));
                     TRACE("NAMESPACE", "prefix", prefix, "uri", uri);
                     content.remove_prefix(valueEndPosition + "\""sv.size());
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
@@ -475,7 +475,7 @@ int main() {
                     }
                     if (colonPosition == qName.npos)
                         colonPosition = 0;
-                    const std::string_view prefix(qName.substr(0, colonPosition));
+                    [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
                     const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
                     content.remove_prefix(nameEndPosition);
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
@@ -534,7 +534,7 @@ int main() {
                 reference = "&";
                 content.remove_prefix("&"sv.size());
             }
-            const std::string_view characters(reference);
+            [[maybe_unused]] const std::string_view characters(reference);
             TRACE("CHARACTERS", "characters", characters);
             ++textSize;
 
