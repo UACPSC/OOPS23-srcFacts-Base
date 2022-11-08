@@ -7,7 +7,7 @@ mkdir build
 cd build
 ```
 
-Once in your build directory (~/srcFacts/build), run cmake:
+Once in your build directory run cmake:
 
 ```console
 cmake ..
@@ -22,13 +22,13 @@ make run
 To run on the command line:
 
 ```console
-./srcFacts < libxml2.xml
+./srcfacts < demo.xml
 ```
 
 You can also time it:
 
 ```console
-time ./srcFacts < libxml2.xml
+time ./srcfacts < demo.xml
 ```
 
 Tracing is off by default. To turn tracing on:

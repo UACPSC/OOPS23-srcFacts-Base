@@ -10,6 +10,8 @@ project(srcFacts)
 
 # C++17 standard
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Use Release build type if not specified
 if (NOT CMAKE_BUILD_TYPE)
@@ -20,22 +22,21 @@ endif()
 set(SOURCE srcFacts.cpp refillBuffer.cpp)
 
 # srcFact application
-add_executable(srcFacts ${SOURCE})
+add_executable(srcfacts ${SOURCE})
 
-# cmake .. -DTRACE=
-if(TRACE)
-    message("TRACE is ${TRACE}")
-    target_compile_definitions(srcFacts PUBLIC TRACE)
+# cmake .. -DTRACE=ON|OFF
+if(DEFINED TRACE)
+    message(STATUS "TRACE is ${TRACE}")
+    if(TRACE)
+        target_compile_definitions(srcfacts PUBLIC TRACE)
+    endif()
 endif()
 
 # Turn on warnings
-if (MSVC)
-    # warning level 4
-    add_compile_options(/W4)
-else()
-    # standard warnings
-    add_compile_options(-Wall)
-endif()
+target_compile_options(srcfacts PRIVATE
+     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wno-unused-variable>
+     $<$<CXX_COMPILER_ID:MSVC>: /W4>
+)
 
 # Extract the demo input srcML file
 file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/demo.xml.zip)
@@ -43,8 +44,8 @@ file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/demo.xml.zip)
 # Demo run command
 add_custom_target(run
         COMMENT "Run demo"
-        COMMAND $<TARGET_FILE:srcFacts> < demo.xml
-        DEPENDS srcFacts
+        COMMAND $<TARGET_FILE:srcfacts> < demo.xml
+        DEPENDS srcfacts
         USES_TERMINAL
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
