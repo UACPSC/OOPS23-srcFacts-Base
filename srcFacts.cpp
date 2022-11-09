@@ -185,10 +185,6 @@ int main() {
                     return 1;
                 }
                 totalBytes += bytesRead;
-                if ((tagEndPosition = content.find('>')) == content.npos) {
-                    std::cerr << "parser error: Incomplete XML declaration\n";
-                    return 1;
-                }
             }
             content.remove_prefix("<?xml"sv.size());
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
@@ -321,20 +317,13 @@ int main() {
         } else if (content[1] == '/' && content[0] == '<') {
             // parse end tag
             content.remove_prefix("</"sv.size());
-            if (content.size() < 100) {
-                if (content.find('>') == content.npos) {
-                    int bytesRead = refillBuffer(content);
-                    if (bytesRead < 0) {
-                        std::cerr << "parser error : File input error\n";
-                        return 1;
-                    }
-                    totalBytes += bytesRead;
-                    // @TODO start search after initial sed
-                    if (content.substr(0, bytesRead).find('>') == content.npos) {
-                        std::cerr << "parser error: Incomplete element end tag\n";
-                        return 1;
-                    }
+            if (content.size() < 100 && content.find('>') == content.npos) {
+                int bytesRead = refillBuffer(content);
+                if (bytesRead < 0) {
+                    std::cerr << "parser error : File input error\n";
+                    return 1;
                 }
+                totalBytes += bytesRead;
             }
             if (content.front() == ':') {
                 std::cerr << "parser error : Invalid end tag name\n";
@@ -362,20 +351,13 @@ int main() {
         } else if (content.front() == '<') {
             // parse start tag
             content.remove_prefix("<"sv.size());
-            if (content.size() < 200) {
-                if (content.find('>') == content.npos) {
-                    int bytesRead = refillBuffer(content);
-                    if (bytesRead < 0) {
-                        std::cerr << "parser error : File input error\n";
-                        return 1;
-                    }
-                    totalBytes += bytesRead;
-                    // @TODO start search after initial sed
-                    if (content.find('>') == content.npos) {
-                        std::cerr << "parser error: Incomplete element start tag\n";
-                        return 1;
-                    }
+            if (content.size() < 200 && content.find('>') == content.npos) {
+                int bytesRead = refillBuffer(content);
+                if (bytesRead < 0) {
+                    std::cerr << "parser error : File input error\n";
+                    return 1;
                 }
+                totalBytes += bytesRead;
             }
             if (content.front() == ':') {
                 std::cerr << "parser error : Invalid start tag name\n";
@@ -416,7 +398,6 @@ int main() {
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             while (tagNameMask[content[0]]) {
                 if (content.size() < 100) {
-                    // refill buffer and adjust iterator
                     int bytesRead = refillBuffer(content);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
