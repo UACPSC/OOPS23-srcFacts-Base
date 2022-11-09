@@ -48,7 +48,7 @@ using namespace std::literals::string_view_literals;
 
 const int BUFFER_SIZE = 16 * 16 * 4096;
 
-const std::bitset<128> tagNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
+const std::bitset<128> xmlNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
 
 constexpr auto WHITESPACE = " \n\t\r"sv;
 
@@ -302,7 +302,7 @@ int main() {
                 }
             }
             content.remove_prefix("<?"sv.size());
-            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
             // FIX
             if (nameEndPosition == 0) {
                 std::cerr << "parser error : Unterminated processing instruction '" << content.substr(0, nameEndPosition) << "'\n";
@@ -329,7 +329,7 @@ int main() {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
             }
-            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated end tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -363,7 +363,7 @@ int main() {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
             }
-            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated start tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -371,7 +371,7 @@ int main() {
             size_t colonPosition = 0;
             if (content[nameEndPosition] == ':') {
                 colonPosition = nameEndPosition;
-                nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin() + nameEndPosition + 1, content.cend(), [] (char c) { return tagNameMask[c]; }));
+                nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin() + nameEndPosition + 1, content.cend(), [] (char c) { return xmlNameMask[c]; }));
             }
             const std::string_view qName(content.substr(0, nameEndPosition));
             if (qName.empty()) {
@@ -396,7 +396,7 @@ int main() {
             }
             content.remove_prefix(nameEndPosition);
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
-            while (tagNameMask[content[0]]) {
+            while (xmlNameMask[content[0]]) {
                 if (content.size() < 100) {
                     int bytesRead = refillBuffer(content);
                     if (bytesRead < 0) {
@@ -443,7 +443,7 @@ int main() {
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
                 } else {
                     // parse attribute
-                    std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return tagNameMask[c]; }));
+                    std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
                     if (nameEndPosition == content.size()) {
                         std::cerr << "parser error : Empty attribute name" << '\n';
                         return 1;
