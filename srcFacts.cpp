@@ -140,7 +140,38 @@ int main() {
             }
             totalBytes += bytesRead;
         }
-        if (content[1] == '!' && content[0] == '<' && content[2] == '-' && content[3] == '-') {
+        if (content.front() == '&') {
+            // parse character entity references
+            std::string_view unescapedCharacter;
+            std::string_view escapedCharacter;
+            if (content[1] == 'l' && content[2] == 't' && content[3] == ';') {
+                unescapedCharacter = "<";
+                escapedCharacter = "&lt;"sv;
+            } else if (content[1] == 'g' && content[2] == 't' && content[3] == ';') {
+                unescapedCharacter = ">";
+                escapedCharacter = "&gt;"sv;
+            } else if (content[1] == 'a' && content[2] == 'm' && content[3] == 'p' && content[4] == ';') {
+                unescapedCharacter = "&";
+                escapedCharacter = "&amp;"sv;
+            } else {
+                unescapedCharacter = "&";
+                escapedCharacter = "&"sv;
+            }
+            assert(content.compare(0, unescapedCharacter.size(), unescapedCharacter) == 0);
+            content.remove_prefix(unescapedCharacter.size());
+            [[maybe_unused]] const std::string_view characters(unescapedCharacter);
+            TRACE("CHARACTERS", "characters", characters);
+            ++textSize;
+        } else if (content.front() != '<') {
+            // parse character non-entity references
+            assert(content.front() != '<' && content.front() != '&');
+            std::size_t characterEndPosition = content.find_first_of("<&");
+            const std::string_view characters(content.substr(0, characterEndPosition));
+            TRACE("CHARACTERS", "characters", characters);
+            loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
+            textSize += static_cast<int>(characters.size());
+            content.remove_prefix(characters.size());
+        } else if (content[1] == '!' /* && content[0] == '<' */ && content[2] == '-' && content[3] == '-') {
             // parse XML comment
             assert(content.substr("<!--"sv.size()) == "<!--"sv);
             content.remove_prefix("<!--"sv.size());
@@ -163,7 +194,7 @@ int main() {
             TRACE("COMMENT", "content", comment);
             content.remove_prefix(tagEndPosition);
             content.remove_prefix("-->"sv.size());
-        } else if (content[1] == '!' && content[0] == '<' && content[2] == '[' && content[3] == 'C' && content[4] == 'D' &&
+        } else if (content[1] == '!' /* && content[0] == '<' */ && content[2] == '[' && content[3] == 'C' && content[4] == 'D' &&
                    content[5] == 'A' && content[6] == 'T' && content[7] == 'A' && content[8] == '[') {
             // parse CDATA
             content.remove_prefix("<![CDATA["sv.size());
@@ -188,7 +219,7 @@ int main() {
             loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
             content.remove_prefix(tagEndPosition);
             content.remove_prefix("]]>"sv.size());
-        } else if (depth == 0 && content[1] == '?' && content[0] == '<' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
+        } else if (depth == 0 && content[1] == '?' /* && content[0] == '<' */ && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
             // parse XML declaration
             assert(content.compare(0, "<?xml "sv.size(), "<?xml "sv) == 0);
             content.remove_prefix("<?xml"sv.size());
@@ -284,7 +315,7 @@ int main() {
             content.remove_prefix("?>"sv.size());
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
 
-        } else if (content[1] == '?' && content[0] == '<') {
+        } else if (content[1] == '?' /* && content[0] == '<' */) {
             // parse processing instruction
             assert(content.compare(0, "<?"sv.size(), "<?"sv) == 0);
             content.remove_prefix("<?"sv.size());
@@ -306,7 +337,7 @@ int main() {
             content.remove_prefix(tagEndPosition);
             assert(content.compare(0, "?>"sv.size(), "?>"sv) == 0);
             content.remove_prefix("?>"sv.size());
-        } else if (content[1] == '/' && content[0] == '<') {
+        } else if (content[1] == '/' /* && content[0] == '<' */) {
             // parse end tag
             assert(content.compare(0, "</"sv.size(), "</"sv) == 0);
             content.remove_prefix("</"sv.size());
@@ -485,38 +516,9 @@ int main() {
         } else if (depth == 0) {
             // ignore whitespace before or after XML
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
-        } else if (content.front() == '&') {
-            // parse character entity references
-            std::string_view unescapedCharacter;
-            std::string_view escapedCharacter;
-            if (content[1] == 'l' && content[2] == 't' && content[3] == ';') {
-                unescapedCharacter = "<";
-                escapedCharacter = "&lt;"sv;
-            } else if (content[1] == 'g' && content[2] == 't' && content[3] == ';') {
-                unescapedCharacter = ">";
-                escapedCharacter = "&gt;"sv;
-            } else if (content[1] == 'a' && content[2] == 'm' && content[3] == 'p' && content[4] == ';') {
-                unescapedCharacter = "&";
-                escapedCharacter = "&amp;"sv;
-            } else {
-                unescapedCharacter = "&";
-                escapedCharacter = "&"sv;
-            }
-            assert(content.compare(0, unescapedCharacter.size(), unescapedCharacter) == 0);
-            content.remove_prefix(unescapedCharacter.size());
-            [[maybe_unused]] const std::string_view characters(unescapedCharacter);
-            TRACE("CHARACTERS", "characters", characters);
-            ++textSize;
-
         } else {
-            // parse character non-entity references
-            assert(content.front() != '<' && content.front() != '&');
-            std::size_t characterEndPosition = content.find_first_of("<&");
-            const std::string_view characters(content.substr(0, characterEndPosition));
-            TRACE("CHARACTERS", "characters", characters);
-            loc += static_cast<int>(std::count(characters.cbegin(), characters.cend(), '\n'));
-            textSize += static_cast<int>(characters.size());
-            content.remove_prefix(characters.size());
+            std::cerr << "parser error : invalid XML document\n";
+            return 1;
         }
     }
     TRACE("END DOCUMENT");
