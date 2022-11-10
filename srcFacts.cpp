@@ -157,8 +157,8 @@ int main() {
                 unescapedCharacter = "&";
                 escapedCharacter = "&"sv;
             }
-            assert(content.compare(0, unescapedCharacter.size(), unescapedCharacter) == 0);
-            content.remove_prefix(unescapedCharacter.size());
+            assert(content.compare(0, escapedCharacter.size(), escapedCharacter) == 0);
+            content.remove_prefix(escapedCharacter.size());
             [[maybe_unused]] const std::string_view characters(unescapedCharacter);
             TRACE("CHARACTERS", "characters", characters);
             ++textSize;
