@@ -31,6 +31,7 @@
 #include <memory>
 #include <stdlib.h>
 #include <bitset>
+#include <cassert>
 
 #if !defined(_MSC_VER)
 #include <sys/uio.h>
@@ -63,26 +64,22 @@ constexpr auto WHITESPACE = " \n\t\r"sv;
     @retval 0 EOF
     @retval -1 Read error
 */
-int refillBuffer(std::string_view& content) {
+[[nodiscard]] int refillBuffer(std::string_view& content) {
 
     // initialize the buffer at first use
     static std::string buffer(BUFFER_SIZE, ' ');
 
-    // move unprocessed characters in content to start of the buffer
+    // remove prefix of processed characters to start of the buffer
     std::copy(content.cbegin(), content.cend(), buffer.begin());
 
     // read in whole blocks
     ssize_t readBytes = 0;
-    while (((readBytes = READ(0, static_cast<void*>(buffer.data() + content.size()),
+    while (((readBytes = READ(0, (buffer.data() + content.size()),
         BUFFER_SIZE - BLOCK_SIZE)) == -1) && (errno == EINTR)) {
     }
     if (readBytes == -1)
         // error in read
         return -1;
-    if (readBytes == 0) {
-        // EOF
-        return 0;
-    }
 
     // set content to the start of the buffer
     content = std::string_view(&buffer[0], content.size() + readBytes);
@@ -120,25 +117,33 @@ int main() {
     int depth = 0;
     long totalBytes = 0;
     std::string_view content;
+    bool doneReading = false;
+    std::size_t lastSize = 0;
     TRACE("START DOCUMENT");
     while (true) {
-        if (content.size() < BLOCK_SIZE) {
+        if (doneReading) {
+            if (content.empty())
+                break;
+            if (content.size() == lastSize)
+                break;
+            lastSize = content.size();
+        }
+        if (!doneReading && content.size() < BLOCK_SIZE) {
             // refill buffer and adjust iterator
             int bytesRead = refillBuffer(content);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
                 return 1;
             }
-            if (bytesRead == 0)
-                break;
-            totalBytes += bytesRead;
-        } else if (content[1] == '!' && content[0] == '<' && content[2] == '-' && content[3] == '-') {
-            // parse XML comment
-            if (content.empty()) {
-                std::cerr << "parser error : Unterminated XML comment\n";
-                return 1;
+            if (bytesRead == 0) {
+                doneReading = true;
             }
-            content.remove_prefix("<!=="sv.size());
+            totalBytes += bytesRead;
+        }
+        if (content[1] == '!' && content[0] == '<' && content[2] == '-' && content[3] == '-') {
+            // parse XML comment
+            assert(content.substr("<!--"sv.size()) == "<!--"sv);
+            content.remove_prefix("<!--"sv.size());
             std::size_t tagEndPosition = content.find("-->"sv);
             if (tagEndPosition == content.npos) {
                 // refill buffer and adjust iterator
@@ -149,6 +154,10 @@ int main() {
                 }
                 totalBytes += bytesRead;
                 tagEndPosition = content.find("-->"sv);
+                if (tagEndPosition == content.npos) {
+                    std::cerr << "parser error : Unterminated XML comment\n";
+                    return 1;
+                }
             }
             [[maybe_unused]] const std::string_view comment(content.substr(0, tagEndPosition));
             TRACE("COMMENT", "content", comment);
@@ -168,6 +177,10 @@ int main() {
                 }
                 totalBytes += bytesRead;
                 tagEndPosition = content.find("]]>"sv);
+                if (tagEndPosition == content.npos) {
+                    std::cerr << "parser error : Unterminated CDATA\n";
+                    return 1;
+                }
             }
             const std::string_view characters(content.substr(0, tagEndPosition));
             TRACE("CDATA", "characters", characters);
@@ -177,23 +190,10 @@ int main() {
             content.remove_prefix("]]>"sv.size());
         } else if (depth == 0 && content[1] == '?' && content[0] == '<' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
             // parse XML declaration
-            std::size_t tagEndPosition = content.find('>');
-            if (tagEndPosition == content.npos) {
-                int bytesRead = refillBuffer(content);
-                if (bytesRead < 0) {
-                    std::cerr << "parser error : File input error\n";
-                    return 1;
-                }
-                totalBytes += bytesRead;
-            }
+            assert(content.compare(0, "<?xml "sv.size(), "<?xml "sv) == 0);
             content.remove_prefix("<?xml"sv.size());
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             // parse required version
-            // if (cursor == tagEnd) {
-            //     std::cerr << "parser error: Missing space after before version in XML declaration\n";
-            //     return 1;
-            // }
-            // std::string::const_iterator nameEnd = std::find(cursor, tagEnd, '=');
             std::size_t nameEndPosition = content.find('=');
             const std::string_view attr(content.substr(0, nameEndPosition));
             content.remove_prefix(nameEndPosition + "="sv.size());
@@ -220,7 +220,6 @@ int main() {
             std::optional<std::string_view> standalone;
             // FIX
             if (true) { //cursor != (tagEnd - 1)) {
-                // nameEnd = std::find(cursor, tagEnd, '=');
                 std::size_t nameEndPosition = content.find('=');
                 if (nameEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
@@ -240,9 +239,9 @@ int main() {
                     return 1;
                 }
                 if (attr2 == "encoding"sv) {
-                    encoding = std::string_view(content.substr(0, valueEndPosition));
+                    encoding = content.substr(0, valueEndPosition);
                 } else if (attr2 == "standalone"sv) {
-                    standalone = std::string_view(content.substr(0, valueEndPosition));
+                    standalone = content.substr(0, valueEndPosition);
                 } else {
                     std::cerr << "parser error: Invalid attribute " << attr2 << " in XML declaration\n";
                     return 1;
@@ -253,7 +252,7 @@ int main() {
             // FIX
             if (true) { // cursor != (tagEnd - endXMLDecl.size() + 1)) {
                 // nameEnd = std::find(cursor, tagEnd, '=');
-                std::size_t nameEndPosition = content.substr(0, tagEndPosition).find('=');
+                std::size_t nameEndPosition = content.find('=');
                 if (nameEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
                     return 1;
@@ -267,45 +266,39 @@ int main() {
                 }
                 content.remove_prefix("\""sv.size());
                 // auto valueEnd = std::find(cursor, tagEnd, delimiter2);
-                std::size_t valueEndPosition = content.substr(0, tagEndPosition).find(delimiter2);
+                std::size_t valueEndPosition = content.find(delimiter2);
                 if (valueEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
                     return 1;
                 }
                 if (!standalone && attr2 == "standalone"sv) {
-                    standalone = std::string_view(content.substr(0, valueEndPosition));
+                    standalone = content.substr(0, valueEndPosition);
                 } else {
                     std::cerr << "parser error: Invalid attribute " << attr2 << " in XML declaration\n";
                     return 1;
                 }
+                // assert(content[valueEndPosition + 1] == '"');
                 content.remove_prefix(valueEndPosition + 1);
-                content.remove_prefix(content.substr(0, tagEndPosition).find_first_not_of(WHITESPACE));
+                content.remove_prefix(content.find_first_not_of(WHITESPACE));
             }
             TRACE("XML DECLARATION", "version", version, "encoding", (encoding ? *encoding : ""), "standalone", (standalone ? *standalone : ""));
+            assert(content.substr(0, 2) == "?>"sv);
             content.remove_prefix("?>"sv.size());
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
 
         } else if (content[1] == '?' && content[0] == '<') {
             // parse processing instruction
+            assert(content.compare(0, "<?"sv.size(), "<?"sv) == 0);
+            content.remove_prefix("<?"sv.size());
             std::size_t tagEndPosition = content.find("?>"sv);
             if (tagEndPosition == content.npos) {
-                int bytesRead = refillBuffer(content);
-                if (bytesRead < 0) {
-                    std::cerr << "parser error : File input error\n";
-                    return 1;
-                }
-                totalBytes += bytesRead;
-                tagEndPosition = content.find("?>"sv);
-                if (tagEndPosition == content.npos) {
-                    std::cerr << "parser error: Incomplete XML declaration\n";
-                    return 1;
-                }
+                std::cerr << "parser error: Incomplete XML declaration\n";
+                return 1;
             }
-            content.remove_prefix("<?"sv.size());
             std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
             // FIX
             if (nameEndPosition == 0) {
-                std::cerr << "parser error : Unterminated processing instruction '" << content.substr(0, nameEndPosition) << "'\n";
+                std::cerr << "parser error : Unterminated processing instruction\n";
                 return 1;
             }
             [[maybe_unused]] const std::string_view target(content.substr(0, nameEndPosition));
@@ -313,18 +306,12 @@ int main() {
             [[maybe_unused]] const std::string_view data(content.substr(0, tagEndPosition));
             TRACE("PI", "target", target, "data", data);
             content.remove_prefix(tagEndPosition);
+            assert(content.compare(0, "?>"sv.size(), "?>"sv) == 0);
             content.remove_prefix("?>"sv.size());
         } else if (content[1] == '/' && content[0] == '<') {
             // parse end tag
+            assert(content.compare(0, "</"sv.size(), "</"sv) == 0);
             content.remove_prefix("</"sv.size());
-            if (content.size() < BLOCK_SIZE) {
-                int bytesRead = refillBuffer(content);
-                if (bytesRead < 0) {
-                    std::cerr << "parser error : File input error\n";
-                    return 1;
-                }
-                totalBytes += bytesRead;
-            }
             if (content.front() == ':') {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
@@ -334,31 +321,27 @@ int main() {
                 std::cerr << "parser error : Unterminated end tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
             }
+            size_t colonPosition = 0;
+            if (content[nameEndPosition] == ':') {
+                colonPosition = nameEndPosition;
+                nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin() + nameEndPosition + 1, content.cend(), [] (char c) { return xmlNameMask[c]; }));
+            }
             const std::string_view qName(content.substr(0, nameEndPosition));
             if (qName.empty()) {
                 std::cerr << "parser error: EndTag: invalid element name\n";
                 return 1;
             }
-            size_t colonPosition = qName.find(':');
-            if (colonPosition == qName.npos) {
-                colonPosition = 0;
-            }
             [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
             [[maybe_unused]] const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
-            content.remove_prefix(nameEndPosition + ">"sv.size());
-            --depth;
             TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
+            content.remove_prefix(nameEndPosition);
+            assert(content.compare(0, ">"sv.size(), ">"sv) == 0);
+            content.remove_prefix(">"sv.size());
+            --depth;
         } else if (content.front() == '<') {
             // parse start tag
+            assert(content.compare(0, "<"sv.size(), "<"sv) == 0);
             content.remove_prefix("<"sv.size());
-            if (content.size() < BLOCK_SIZE) {
-                int bytesRead = refillBuffer(content);
-                if (bytesRead < 0) {
-                    std::cerr << "parser error : File input error\n";
-                    return 1;
-                }
-                totalBytes += bytesRead;
-            }
             if (content.front() == ':') {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
@@ -397,16 +380,20 @@ int main() {
             content.remove_prefix(nameEndPosition);
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             while (xmlNameMask[content[0]]) {
-                if (content.size() < BLOCK_SIZE) {
+                if (!doneReading && content.size() < BLOCK_SIZE) {
                     int bytesRead = refillBuffer(content);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
                     }
+                    if (bytesRead == 0) {
+                        doneReading = true;
+                    }
                     totalBytes += bytesRead;
                 }
                 if (content[0] == 'x' && content[1] == 'm' && content[2] == 'l' && content[3] == 'n' && content[4] == 's' && (content[5] == ':' || content[5] == '=')) {
                     // parse XML namespace
+                    assert(content.compare(0, "xmlns"sv.size(), "xmlns"sv) == 0);
                     content.remove_prefix("xmlns"sv.size());
                     std::size_t nameEndPosition = content.find('=');
                     if (nameEndPosition == content.npos) {
@@ -493,6 +480,7 @@ int main() {
                 content.remove_prefix(">"sv.size());
                 ++depth;
             } else if (content[0] == '/' && content[1] == '>') {
+                assert(content.compare(0, "/>"sv.size(), "/>") == 0);
                 content.remove_prefix("/>"sv.size());
                 TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
             }
@@ -501,26 +489,30 @@ int main() {
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
         } else if (content.front() == '&') {
             // parse character entity references
-            std::string_view reference;
+            std::string_view unescapedCharacter;
+            std::string_view escapedCharacter;
             if (content[1] == 'l' && content[2] == 't' && content[3] == ';') {
-                reference = "<";
-                content.remove_prefix("&lt;"sv.size());
+                unescapedCharacter = "<";
+                escapedCharacter = "&lt;"sv;
             } else if (content[1] == 'g' && content[2] == 't' && content[3] == ';') {
-                reference = ">";
-                content.remove_prefix("&gt;"sv.size());
+                unescapedCharacter = ">";
+                escapedCharacter = "&gt;"sv;
             } else if (content[1] == 'a' && content[2] == 'm' && content[3] == 'p' && content[4] == ';') {
-                reference = "&";
-                content.remove_prefix("&amp;"sv.size());
+                unescapedCharacter = "&";
+                escapedCharacter = "&amp;"sv;
             } else {
-                reference = "&";
-                content.remove_prefix("&"sv.size());
+                unescapedCharacter = "&";
+                escapedCharacter = "&"sv;
             }
-            [[maybe_unused]] const std::string_view characters(reference);
+            assert(content.compare(0, unescapedCharacter.size(), unescapedCharacter) == 0);
+            content.remove_prefix(unescapedCharacter.size());
+            [[maybe_unused]] const std::string_view characters(unescapedCharacter);
             TRACE("CHARACTERS", "characters", characters);
             ++textSize;
 
         } else {
             // parse character non-entity references
+            assert(content.front() != '<' && content.front() != '&');
             std::size_t characterEndPosition = content.find_first_of("<&");
             const std::string_view characters(content.substr(0, characterEndPosition));
             TRACE("CHARACTERS", "characters", characters);
