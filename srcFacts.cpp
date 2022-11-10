@@ -251,7 +251,6 @@ int main() {
             }
             // FIX
             if (true) { // cursor != (tagEnd - endXMLDecl.size() + 1)) {
-                // nameEnd = std::find(cursor, tagEnd, '=');
                 std::size_t nameEndPosition = content.find('=');
                 if (nameEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
@@ -265,7 +264,6 @@ int main() {
                     return 1;
                 }
                 content.remove_prefix("\""sv.size());
-                // auto valueEnd = std::find(cursor, tagEnd, delimiter2);
                 std::size_t valueEndPosition = content.find(delimiter2);
                 if (valueEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute " << attr2 << " in XML declaration\n";
