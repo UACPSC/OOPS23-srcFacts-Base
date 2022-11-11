@@ -253,7 +253,7 @@ int main() {
             // parse optional encoding and standalone attributes
             std::optional<std::string_view> encoding;
             std::optional<std::string_view> standalone;
-            if (content.front() != '>') {
+            if (content.front() != '?') {
                 std::size_t nameEndPosition = content.find_first_of("= ");
                 if (nameEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
@@ -287,7 +287,7 @@ int main() {
                 content.remove_prefix(valueEndPosition + 1);
                 content.remove_prefix(content.find_first_not_of(WHITESPACE));
             }
-            if (content.front() != '>') {
+            if (content.front() != '?') {
                 std::size_t nameEndPosition = content.find_first_of("= ");
                 if (nameEndPosition == content.npos) {
                     std::cerr << "parser error: Incomplete attribute in XML declaration\n";
