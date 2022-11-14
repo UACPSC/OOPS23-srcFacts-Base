@@ -115,10 +115,8 @@ int main() {
     int unitCount = 0;
     int declCount = 0;
     int commentCount = 0;
-    int depth = 0;
     long totalBytes = 0;
     std::string_view content;
-    bool doneReading = false;
     TRACE("START DOCUMENT");
     int bytesRead = refillBuffer(content);
     if (bytesRead < 0) {
@@ -131,7 +129,7 @@ int main() {
     }
     totalBytes += bytesRead;
     content.remove_prefix(content.find_first_not_of(WHITESPACE));
-    if (depth == 0 && content[1] == '?' && content[0] == '<' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
+    if (content[0] == '<' && content[1] == '?' && content[2] == 'x' && content[3] == 'm' && content[4] == 'l' && content[5] == ' ') {
         // parse XML declaration
         assert(content.compare(0, "<?xml "sv.size(), "<?xml "sv) == 0);
         content.remove_prefix("<?xml"sv.size());
@@ -236,6 +234,8 @@ int main() {
         content.remove_prefix("?>"sv.size());
         content.remove_prefix(content.find_first_not_of(WHITESPACE));
     }
+    int depth = 0;
+    bool doneReading = false;
     while (true) {
         if (doneReading) {
             if (content.empty())
