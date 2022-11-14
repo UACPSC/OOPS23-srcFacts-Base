@@ -240,12 +240,33 @@ int main() {
         assert(content.substr(0, "<!DOCTYPE "sv.size()) == "<!DOCTYPE "sv);
         content.remove_prefix("<!DOCTYPE"sv.size());
         int depthAngleBrackets = 1;
+        bool inSingleQuote = false;
+        bool inDoubleQuote = false;
+        bool inComment = false;
         int p = 0;
-        while ((p = content.find_first_of("<>"sv, p)) != content.npos) {
-            if (content[p] == '<')
+        while ((p = content.find_first_of("<>'\"-"sv, p)) != content.npos) {
+            if (content.compare(p, "<!--"sv.size(), "<!--"sv) == 0) {
+                inComment = true;
+                p += "<!--"sv.size();
+                continue;
+            } else if (content.compare(p, "-->"sv.size(), "-->"sv) == 0) {
+                inComment = false;
+                p += "-->"sv.size();
+                continue;
+            }
+            if (inComment) {
+                ++p;
+                continue;
+            }
+            if (content[p] == '<' && !inSingleQuote && !inDoubleQuote) {
                 ++depthAngleBrackets;
-            else
+            } else if (content[p] == '>' && !inSingleQuote && !inDoubleQuote) {
                 --depthAngleBrackets;
+            } else if (content[p] == '\'') {
+                inSingleQuote = !inSingleQuote;
+            } else if (content[p] == '"') {
+                inDoubleQuote = !inDoubleQuote;
+            }
             if (depthAngleBrackets == 0)
                 break;
             ++p;
@@ -257,7 +278,6 @@ int main() {
         content.remove_prefix(">"sv.size());
         content.remove_prefix(content.find_first_not_of(WHITESPACE));
     }
-
     int depth = 0;
     bool doneReading = false;
     while (true) {
