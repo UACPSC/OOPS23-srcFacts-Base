@@ -235,6 +235,28 @@ int main() {
         content.remove_prefix("?>"sv.size());
         content.remove_prefix(content.find_first_not_of(WHITESPACE));
     }
+    if (content[1] == '!' && content[0] == '<' && content[2] == 'D' && content[3] == 'O' && content[4] == 'C' && content[5] == 'T' && content[6] == 'Y' && content[7] == 'P' && content[8] == 'E' && content[9] == ' ') {
+        // parse DOCTYPE
+        assert(content.substr("<!DOCTYPE "sv.size()) == "<!DOCTYPE "sv);
+        content.remove_prefix("<!DOCTYPE"sv.size());
+        int depthAngleBrackets = 1;
+        int p = 0;
+        while ((p = content.find_first_of("<>"sv, p)) != content.npos) {
+            if (content[p] == '<')
+                ++depthAngleBrackets;
+            else
+                --depthAngleBrackets;
+            if (depthAngleBrackets == 0)
+                break;
+            ++p;
+        }
+        [[maybe_unused]] const std::string_view contents(content.substr(0, p));
+        TRACE("DOCTYPE", "contents", contents);
+        content.remove_prefix(p);
+        content.remove_prefix(">"sv.size());
+        content.remove_prefix(content.find_first_not_of(WHITESPACE));
+    }
+
     int depth = 0;
     bool doneReading = false;
     while (true) {
