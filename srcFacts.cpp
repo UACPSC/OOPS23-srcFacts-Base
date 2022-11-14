@@ -385,14 +385,12 @@ int main() {
                 return 1;
             }
             std::size_t nameEndPosition = content.find_first_of(NAMEEND);
-            // FIX
-            if (nameEndPosition == 0) {
+            if (nameEndPosition == content.npos) {
                 std::cerr << "parser error : Unterminated processing instruction\n";
                 return 1;
             }
             [[maybe_unused]] const std::string_view target(content.substr(0, nameEndPosition));
-            content.remove_prefix(nameEndPosition);
-            [[maybe_unused]] const std::string_view data(content.substr(0, tagEndPosition));
+            [[maybe_unused]] const std::string_view data(content.substr(nameEndPosition, tagEndPosition - nameEndPosition));
             TRACE("PI", "target", target, "data", data);
             content.remove_prefix(tagEndPosition);
             assert(content.compare(0, "?>"sv.size(), "?>"sv) == 0);
