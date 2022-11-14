@@ -143,7 +143,7 @@ int main() {
         content.remove_prefix(content.find_first_not_of(WHITESPACE));
         content.remove_prefix("="sv.size());
         content.remove_prefix(content.find_first_not_of(WHITESPACE));
-        const char delimiter = content.front();
+        const char delimiter = content[0];
         if (delimiter != '"' && delimiter != '\'') {
             std::cerr << "parser error: Invalid start delimiter for version in XML declaration\n";
             return 1;
@@ -165,7 +165,7 @@ int main() {
         // parse optional encoding and standalone attributes
         std::optional<std::string_view> encoding;
         std::optional<std::string_view> standalone;
-        if (content.front() != '?') {
+        if (content[0] != '?') {
             std::size_t nameEndPosition = content.find_first_of("= ");
             if (nameEndPosition == content.npos) {
                 std::cerr << "parser error: Incomplete attribute in XML declaration\n";
@@ -177,7 +177,7 @@ int main() {
             assert(content.compare(0, "="sv.size(), "="sv) == 0);
             content.remove_prefix("="sv.size());
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
-            char delimiter2 = content.front();
+            char delimiter2 = content[0];
             if (delimiter2 != '"' && delimiter2 != '\'') {
                 std::cerr << "parser error: Invalid end delimiter for attribute " << attr2 << " in XML declaration\n";
                 return 1;
@@ -199,7 +199,7 @@ int main() {
             content.remove_prefix(valueEndPosition + 1);
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
         }
-        if (content.front() != '?') {
+        if (content[0] != '?') {
             std::size_t nameEndPosition = content.find_first_of("= ");
             if (nameEndPosition == content.npos) {
                 std::cerr << "parser error: Incomplete attribute in XML declaration\n";
@@ -210,7 +210,7 @@ int main() {
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             content.remove_prefix("="sv.size());
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
-            const char delimiter2 = content.front();
+            const char delimiter2 = content[0];
             if (delimiter2 != '"' && delimiter2 != '\'') {
                 std::cerr << "parser error: Invalid end delimiter for attribute " << attr2 << " in XML declaration\n";
                 return 1;
@@ -252,7 +252,7 @@ int main() {
             }
             totalBytes += bytesRead;
         }
-        if (content.front() == '&') {
+        if (content[0] == '&') {
             // parse character entity references
             std::string_view unescapedCharacter;
             std::string_view escapedCharacter;
@@ -274,9 +274,9 @@ int main() {
             [[maybe_unused]] const std::string_view characters(unescapedCharacter);
             TRACE("CHARACTERS", "characters", characters);
             ++textSize;
-        } else if (content.front() != '<') {
+        } else if (content[0] != '<') {
             // parse character non-entity references
-            assert(content.front() != '<' && content.front() != '&');
+            assert(content[0] != '<' && content[0] != '&');
             std::size_t characterEndPosition = content.find_first_of("<&");
             const std::string_view characters(content.substr(0, characterEndPosition));
             TRACE("CHARACTERS", "characters", characters);
@@ -357,7 +357,7 @@ int main() {
             // parse end tag
             assert(content.compare(0, "</"sv.size(), "</"sv) == 0);
             content.remove_prefix("</"sv.size());
-            if (content.front() == ':') {
+            if (content[0] == ':') {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
             }
@@ -386,11 +386,11 @@ int main() {
             --depth;
             if (depth == 0)
                 break;
-        } else if (content.front() == '<') {
+        } else if (content[0] == '<') {
             // parse start tag
             assert(content.compare(0, "<"sv.size(), "<"sv) == 0);
             content.remove_prefix("<"sv.size());
-            if (content.front() == ':') {
+            if (content[0] == ':') {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
             }
@@ -449,7 +449,7 @@ int main() {
                         return 1;
                     }
                     std::size_t prefixSize = 0;
-                    if (content.front() == ':') {
+                    if (content[0] == ':') {
                         content.remove_prefix(":"sv.size());
                         --nameEndPosition;
                         prefixSize = nameEndPosition;
@@ -462,7 +462,7 @@ int main() {
                         std::cerr << "parser error : incomplete namespace\n";
                         return 1;
                     }
-                    const char delimiter = content.front();
+                    const char delimiter = content[0];
                     if (delimiter != '"' && delimiter != '\'') {
                         std::cerr << "parser error : incomplete namespace\n";
                         return 1;
@@ -501,13 +501,13 @@ int main() {
                         std::cerr << "parser error : attribute " << qName << " incomplete attribute\n";
                         return 1;
                     }
-                    if (content.front() != '=') {
+                    if (content[0] != '=') {
                         std::cerr << "parser error : attribute " << qName << " missing =\n";
                         return 1;
                     }
                     content.remove_prefix("="sv.size());
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
-                    const char delimiter = content.front();
+                    const char delimiter = content[0];
                     if (delimiter != '"' && delimiter != '\'') {
                         std::cerr << "parser error : attribute " << qName << " missing delimiter\n";
                         return 1;
@@ -527,7 +527,7 @@ int main() {
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
                 }
             }
-            if (content.front() == '>') {
+            if (content[0] == '>') {
                 content.remove_prefix(">"sv.size());
                 ++depth;
             } else if (content[0] == '/' && content[1] == '>') {
