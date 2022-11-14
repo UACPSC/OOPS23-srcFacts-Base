@@ -54,6 +54,7 @@ const int BUFFER_SIZE = 16 * 16 * BLOCK_SIZE;
 const std::bitset<128> xmlNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
 
 constexpr auto WHITESPACE = " \n\t\r"sv;
+constexpr auto NAMEEND = "> :=\n\t\r"sv;
 
 /*
     Refill the buffer preserving the unused data.
@@ -340,7 +341,7 @@ int main() {
                 std::cerr << "parser error: Incomplete XML declaration\n";
                 return 1;
             }
-            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
+            std::size_t nameEndPosition = content.find_first_of(NAMEEND);
             // FIX
             if (nameEndPosition == 0) {
                 std::cerr << "parser error : Unterminated processing instruction\n";
@@ -361,7 +362,7 @@ int main() {
                 std::cerr << "parser error : Invalid end tag name\n";
                 return 1;
             }
-            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
+            std::size_t nameEndPosition = content.find_first_of(NAMEEND);
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated end tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -394,7 +395,7 @@ int main() {
                 std::cerr << "parser error : Invalid start tag name\n";
                 return 1;
             }
-            std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
+            std::size_t nameEndPosition = content.find_first_of(NAMEEND);
             if (nameEndPosition == content.size()) {
                 std::cerr << "parser error : Unterminated start tag '" << content.substr(0, nameEndPosition) << "'\n";
                 return 1;
@@ -480,7 +481,7 @@ int main() {
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
                 } else {
                     // parse attribute
-                    std::size_t nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin(), content.cend(), [] (char c) { return xmlNameMask[c]; }));
+                    std::size_t nameEndPosition = content.find_first_of(NAMEEND);
                     if (nameEndPosition == content.size()) {
                         std::cerr << "parser error : Empty attribute name" << '\n';
                         return 1;
