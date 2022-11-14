@@ -309,7 +309,7 @@ int main() {
             content.remove_prefix(characters.size());
         } else if (content[1] == '!' /* && content[0] == '<' */ && content[2] == '-' && content[3] == '-') {
             // parse XML comment
-            assert(content.substr("<!--"sv.size()) == "<!--"sv);
+            assert(content.substr(0, "<!--"sv.size()) == "<!--"sv);
             content.remove_prefix("<!--"sv.size());
             std::size_t tagEndPosition = content.find("-->"sv);
             if (tagEndPosition == content.npos) {
