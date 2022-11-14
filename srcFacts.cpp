@@ -237,7 +237,7 @@ int main() {
     }
     if (content[1] == '!' && content[0] == '<' && content[2] == 'D' && content[3] == 'O' && content[4] == 'C' && content[5] == 'T' && content[6] == 'Y' && content[7] == 'P' && content[8] == 'E' && content[9] == ' ') {
         // parse DOCTYPE
-        assert(content.substr("<!DOCTYPE "sv.size()) == "<!DOCTYPE "sv);
+        assert(content.substr(0, "<!DOCTYPE "sv.size()) == "<!DOCTYPE "sv);
         content.remove_prefix("<!DOCTYPE"sv.size());
         int depthAngleBrackets = 1;
         int p = 0;
@@ -253,6 +253,7 @@ int main() {
         [[maybe_unused]] const std::string_view contents(content.substr(0, p));
         TRACE("DOCTYPE", "contents", contents);
         content.remove_prefix(p);
+        assert(content[0] == '>');
         content.remove_prefix(">"sv.size());
         content.remove_prefix(content.find_first_not_of(WHITESPACE));
     }
