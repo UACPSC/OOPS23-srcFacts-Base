@@ -537,9 +537,6 @@ int main() {
                 if (depth == 0)
                     break;
             }
-        // } else if (depth == 0) {
-        //     // ignore whitespace before or after XML
-        //     content.remove_prefix(content.find_first_not_of(WHITESPACE));
         } else {
             std::cerr << "parser error : invalid XML document\n";
             return 1;
