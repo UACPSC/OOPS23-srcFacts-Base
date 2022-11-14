@@ -54,7 +54,7 @@ const int BUFFER_SIZE = 16 * 16 * BLOCK_SIZE;
 const std::bitset<128> xmlNameMask("00000111111111111111111111111110100001111111111111111111111111100000001111111111011000000000000000000000000000000000000000000000");
 
 constexpr auto WHITESPACE = " \n\t\r"sv;
-constexpr auto NAMEEND = "> :=\n\t\r"sv;
+constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
 
 /*
     Refill the buffer preserving the unused data.
@@ -370,7 +370,7 @@ int main() {
             size_t colonPosition = 0;
             if (content[nameEndPosition] == ':') {
                 colonPosition = nameEndPosition;
-                nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin() + nameEndPosition + 1, content.cend(), [] (char c) { return xmlNameMask[c]; }));
+                nameEndPosition = content.find_first_of(NAMEEND, nameEndPosition + 1);
             }
             const std::string_view qName(content.substr(0, nameEndPosition));
             if (qName.empty()) {
@@ -403,7 +403,7 @@ int main() {
             size_t colonPosition = 0;
             if (content[nameEndPosition] == ':') {
                 colonPosition = nameEndPosition;
-                nameEndPosition = std::distance(content.cbegin(), std::find_if_not(content.cbegin() + nameEndPosition + 1, content.cend(), [] (char c) { return xmlNameMask[c]; }));
+                nameEndPosition = content.find_first_of(NAMEEND, nameEndPosition + 1);
             }
             const std::string_view qName(content.substr(0, nameEndPosition));
             if (qName.empty()) {
