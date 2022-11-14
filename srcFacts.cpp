@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <bitset>
 #include <cassert>
+#include <algorithm>
 
 #if !defined(_MSC_VER)
 #include <sys/uio.h>
@@ -119,12 +120,22 @@ int main() {
     std::string_view content;
     bool doneReading = false;
     TRACE("START DOCUMENT");
+    int bytesRead = refillBuffer(content);
+    if (bytesRead < 0) {
+        std::cerr << "parser error : File input error\n";
+        return 1;
+    }
+    if (bytesRead == 0) {
+        std::cerr << "parser error : Empty file\n";
+        return 1;
+    }
+    totalBytes += bytesRead;
+    content.remove_prefix(content.find_first_not_of(WHITESPACE));
     while (true) {
         if (doneReading) {
             if (content.empty())
                 break;
-        }
-        if (!doneReading && content.size() < BLOCK_SIZE) {
+        } else if (content.size() < BLOCK_SIZE) {
             // refill buffer and adjust iterator
             int bytesRead = refillBuffer(content);
             if (bytesRead < 0) {
@@ -373,6 +384,8 @@ int main() {
             assert(content.compare(0, ">"sv.size(), ">"sv) == 0);
             content.remove_prefix(">"sv.size());
             --depth;
+            if (depth == 0)
+                break;
         } else if (content.front() == '<') {
             // parse start tag
             assert(content.compare(0, "<"sv.size(), "<"sv) == 0);
@@ -521,14 +534,21 @@ int main() {
                 assert(content.compare(0, "/>"sv.size(), "/>") == 0);
                 content.remove_prefix("/>"sv.size());
                 TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
+                if (depth == 0)
+                    break;
             }
-        } else if (depth == 0) {
-            // ignore whitespace before or after XML
-            content.remove_prefix(content.find_first_not_of(WHITESPACE));
+        // } else if (depth == 0) {
+        //     // ignore whitespace before or after XML
+        //     content.remove_prefix(content.find_first_not_of(WHITESPACE));
         } else {
             std::cerr << "parser error : invalid XML document\n";
             return 1;
         }
+    }
+    auto endContent = content.find_first_not_of(WHITESPACE);
+    if (endContent != content.npos) {
+            std::cerr << "parser error : extra content at end of document\n";
+            return 1;
     }
     TRACE("END DOCUMENT");
     const auto finishTime = std::chrono::steady_clock::now();
