@@ -509,14 +509,12 @@ int main() {
                         std::cerr << "parser error : Empty attribute name" << '\n';
                         return 1;
                     }
-                    const std::string_view qName(content.substr(0, nameEndPosition));
-                    size_t colonPosition = qName.find(':');
-                    if (colonPosition == 0) {
-                        std::cerr << "parser error : attribute" << qName  << " starts with a ':'\n";
-                        return 1;
+                    size_t colonPosition = 0;
+                    if (content[nameEndPosition] == ':') {
+                        colonPosition = nameEndPosition;
+                        nameEndPosition = content.find_first_of(NAMEEND, nameEndPosition + 1);
                     }
-                    if (colonPosition == qName.npos)
-                        colonPosition = 0;
+                    const std::string_view qName(content.substr(0, nameEndPosition));
                     [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
                     const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
                     content.remove_prefix(nameEndPosition);
