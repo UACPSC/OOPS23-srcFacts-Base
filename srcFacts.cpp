@@ -118,15 +118,11 @@ int main() {
     long totalBytes = 0;
     std::string_view content;
     bool doneReading = false;
-    std::size_t lastSize = 0;
     TRACE("START DOCUMENT");
     while (true) {
         if (doneReading) {
             if (content.empty())
                 break;
-            if (content.size() == lastSize)
-                break;
-            lastSize = content.size();
         }
         if (!doneReading && content.size() < BLOCK_SIZE) {
             // refill buffer and adjust iterator
