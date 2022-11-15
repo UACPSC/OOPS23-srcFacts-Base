@@ -63,7 +63,7 @@ constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
     @retval 0 EOF
     @retval -1 Read error
 */
-[[nodiscard]] int refillBuffer(std::string_view& content) {
+[[nodiscard]] int refillContent(std::string_view& content) {
 
     // initialize the internal buffer at first use
     static std::string buffer(BUFFER_SIZE, ' ');
@@ -117,7 +117,7 @@ int main() {
     long totalBytes = 0;
     std::string_view content;
     TRACE("START DOCUMENT");
-    int bytesRead = refillBuffer(content);
+    int bytesRead = refillContent(content);
     if (bytesRead < 0) {
         std::cerr << "parser error : File input error\n";
         return 1;
@@ -284,7 +284,7 @@ int main() {
                 break;
         } else if (content.size() < BLOCK_SIZE) {
             // refill buffer and adjust iterator
-            int bytesRead = refillBuffer(content);
+            int bytesRead = refillContent(content);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
                 return 1;
@@ -332,7 +332,7 @@ int main() {
             std::size_t tagEndPosition = content.find("-->"sv);
             if (tagEndPosition == content.npos) {
                 // refill buffer and adjust iterator
-                int bytesRead = refillBuffer(content);
+                int bytesRead = refillContent(content);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -355,7 +355,7 @@ int main() {
             std::size_t tagEndPosition = content.find("]]>"sv);
             if (tagEndPosition == content.npos) {
                 // refill buffer and adjust iterator
-                int bytesRead = refillBuffer(content);
+                int bytesRead = refillContent(content);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
@@ -469,7 +469,7 @@ int main() {
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             while (xmlNameMask[content[0]]) {
                 if (!doneReading && content.size() < BLOCK_SIZE) {
-                    int bytesRead = refillBuffer(content);
+                    int bytesRead = refillContent(content);
                     if (bytesRead < 0) {
                         std::cerr << "parser error : File input error\n";
                         return 1;
@@ -589,7 +589,7 @@ int main() {
         std::size_t tagEndPosition = content.find("-->"sv);
         if (tagEndPosition == content.npos) {
             // refill buffer and adjust iterator
-            int bytesRead = refillBuffer(content);
+            int bytesRead = refillContent(content);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
                 return 1;
