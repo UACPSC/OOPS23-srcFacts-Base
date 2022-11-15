@@ -282,7 +282,7 @@ int main() {
             if (content.empty())
                 break;
         } else if (content.size() < BLOCK_SIZE) {
-            // refill buffer and adjust iterator
+            // refill content preserving unprocessed
             int bytesRead = refillContent(content);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
@@ -330,7 +330,7 @@ int main() {
             content.remove_prefix("<!--"sv.size());
             std::size_t tagEndPosition = content.find("-->"sv);
             if (tagEndPosition == content.npos) {
-                // refill buffer and adjust iterator
+                // refill content preserving unprocessed
                 int bytesRead = refillContent(content);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
@@ -353,7 +353,7 @@ int main() {
             content.remove_prefix("<![CDATA["sv.size());
             std::size_t tagEndPosition = content.find("]]>"sv);
             if (tagEndPosition == content.npos) {
-                // refill buffer and adjust iterator
+                // refill content preserving unprocessed
                 int bytesRead = refillContent(content);
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
@@ -587,7 +587,7 @@ int main() {
         content.remove_prefix("<!--"sv.size());
         std::size_t tagEndPosition = content.find("-->"sv);
         if (tagEndPosition == content.npos) {
-            // refill buffer and adjust iterator
+            // refill content preserving unprocessed
             int bytesRead = refillContent(content);
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
