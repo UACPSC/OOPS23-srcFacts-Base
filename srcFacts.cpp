@@ -91,14 +91,13 @@ constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
 #ifdef TRACE
 #undef TRACE
 #define HEADER(m) std::clog << std::setw(10) << std::left << m << '\t'
-#define FIELD(l, n) l << ":|" << n << "| "
-#define TRACE0(m)
-#define TRACE1(m, l1, n1) HEADER(m) << FIELD(l1,n1) << '\n';
-#define TRACE2(m, l1, n1, l2, n2) HEADER(m) << FIELD(l1,n1) << FIELD(l2,n2) << '\n';
-#define TRACE3(m, l1, n1, l2, n2, l3, n3) HEADER(m) << FIELD(l1,n1) << FIELD(l2,n2) << FIELD(l3,n3) << '\n';
-#define TRACE4(m, l1, n1, l2, n2, l3, n3, l4, n4) HEADER(m) << FIELD(l1,n1) << FIELD(l2,n2) << FIELD(l3,n3) << FIELD(l4,n4) << '\n';
-#define GET_TRACE(_1,_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME
-#define TRACE(...) GET_TRACE(__VA_ARGS__, TRACE4, _UNUSED, TRACE3, _UNUSED, TRACE2, _UNUSED, TRACE1, _UNUSED, TRACE0)(__VA_ARGS__)
+#define TRACE0() ""
+#define TRACE1(l1, n1)                         l1 << ":|" << n1 << "| "
+#define TRACE2(l1, n1, l2, n2)                 TRACE1(l1,n1)             << TRACE1(l2,n2)
+#define TRACE3(l1, n1, l2, n2, l3, n3)         TRACE2(l1,n1,l2,n2)       << TRACE1(l3,n3)
+#define TRACE4(l1, n1, l2, n2, l3, n3, l4, n4) TRACE3(l1,n1,l2,n2,l3,n3) << TRACE1(l4,n4)
+#define GET_TRACE(_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME
+#define TRACE(m,...) HEADER(m) << GET_TRACE(__VA_ARGS__, TRACE4, _UNUSED, TRACE3, _UNUSED, TRACE2, _UNUSED, TRACE1, TRACE0, TRACE0)(__VA_ARGS__) << '\n';
 #else
 #define TRACE(...)
 #endif
