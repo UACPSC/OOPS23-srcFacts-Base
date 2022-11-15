@@ -583,9 +583,37 @@ int main() {
         }
     }
     auto endContent = content.find_first_not_of(WHITESPACE);
-    if (endContent != content.npos) {
-            std::cerr << "parser error : extra content at end of document\n";
-            return 1;
+    content.remove_prefix(endContent == -1 ? content.size() : endContent);
+    while (!content.empty() && content[0] == '<' && content[1] == '!' && content[2] == '-' && content[3] == '-') {
+        // parse XML comment
+        assert(content.substr(0, "<!--"sv.size()) == "<!--"sv);
+        content.remove_prefix("<!--"sv.size());
+        std::size_t tagEndPosition = content.find("-->"sv);
+        if (tagEndPosition == content.npos) {
+            // refill buffer and adjust iterator
+            int bytesRead = refillBuffer(content);
+            if (bytesRead < 0) {
+                std::cerr << "parser error : File input error\n";
+                return 1;
+            }
+            totalBytes += bytesRead;
+            tagEndPosition = content.find("-->"sv);
+            if (tagEndPosition == content.npos) {
+                std::cerr << "parser error : Unterminated XML comment\n";
+                return 1;
+            }
+        }
+        [[maybe_unused]] const std::string_view comment(content.substr(0, tagEndPosition));
+        TRACE("COMMENT", "content", comment);
+        content.remove_prefix(tagEndPosition);
+        assert(content.substr(0, "-->"sv.size()) == "-->"sv);
+        content.remove_prefix("-->"sv.size());
+        endContent = content.find_first_not_of(WHITESPACE);
+        content.remove_prefix(endContent == -1 ? content.size() : endContent);
+    }
+    if (!content.empty()) {
+        std::cerr << "parser error : extra content at end of document\n";
+        return 1;
     }
     TRACE("END DOCUMENT");
     const auto finishTime = std::chrono::steady_clock::now();
