@@ -581,8 +581,7 @@ int main() {
             return 1;
         }
     }
-    auto endContent = content.find_first_not_of(WHITESPACE);
-    content.remove_prefix(endContent == -1 ? content.size() : endContent);
+    content.remove_prefix(content.find_first_not_of(WHITESPACE) == -1 ? content.size() : content.find_first_not_of(WHITESPACE));
     while (!content.empty() && content[0] == '<' && content[1] == '!' && content[2] == '-' && content[3] == '-') {
         // parse XML comment
         assert(content.substr(0, "<!--"sv.size()) == "<!--"sv);
@@ -607,8 +606,7 @@ int main() {
         content.remove_prefix(tagEndPosition);
         assert(content.substr(0, "-->"sv.size()) == "-->"sv);
         content.remove_prefix("-->"sv.size());
-        endContent = content.find_first_not_of(WHITESPACE);
-        content.remove_prefix(endContent == -1 ? content.size() : endContent);
+        content.remove_prefix(content.find_first_not_of(WHITESPACE) == -1 ? content.size() : content.find_first_not_of(WHITESPACE));
     }
     if (!content.empty()) {
         std::cerr << "parser error : extra content at end of document\n";
