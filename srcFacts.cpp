@@ -57,36 +57,35 @@ constexpr auto WHITESPACE = " \n\t\r"sv;
 constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
 
 /*
-    Refill the buffer preserving the unused data.
-    Current content is shifted left and new data
-    appended to the rest of the content.
+    Refill the content preserving the existing data.
 
-    @param[in, out] content View of buffer
+    @param[in, out] content View of the content
     @return Number of bytes read
     @retval 0 EOF
     @retval -1 Read error
 */
 [[nodiscard]] int refillBuffer(std::string_view& content) {
 
-    // initialize the buffer at first use
+    // initialize the internal buffer at first use
     static std::string buffer(BUFFER_SIZE, ' ');
 
-    // remove prefix of processed characters to start of the buffer
+    // preserve prefix of unprocessed characters to start of the buffer
     std::copy(content.cbegin(), content.cend(), buffer.begin());
 
-    // read in whole blocks
-    ssize_t readBytes = 0;
-    while (((readBytes = READ(0, (buffer.data() + content.size()),
+    // read in multiple of whole blocks
+    ssize_t bytesRead = 0;
+    while (((bytesRead = READ(0, (buffer.data() + content.size()),
         BUFFER_SIZE - BLOCK_SIZE)) == -1) && (errno == EINTR)) {
     }
-    if (readBytes == -1)
+    if (bytesRead == -1) {
         // error in read
         return -1;
+    }
 
     // set content to the start of the buffer
-    content = std::string_view(&buffer[0], content.size() + readBytes);
+    content = std::string_view(&buffer[0], content.size() + bytesRead);
 
-    return readBytes;
+    return bytesRead;
 }
 
 // trace parsing
