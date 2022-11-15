@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <bitset>
 #include <cassert>
-#include <algorithm>
 
 #if !defined(_MSC_VER)
 #include <sys/uio.h>
