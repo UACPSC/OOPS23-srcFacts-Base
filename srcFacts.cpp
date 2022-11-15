@@ -102,7 +102,8 @@ constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
 #define TRACE(...)
 #endif
 
-int main() {
+int main(int argc, char* argv[]) {
+
     const auto startTime = std::chrono::steady_clock::now();
     std::string url;
     int textSize = 0;
