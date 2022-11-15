@@ -467,17 +467,6 @@ int main() {
             content.remove_prefix(nameEndPosition);
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             while (xmlNameMask[content[0]]) {
-                if (!doneReading && content.size() < BLOCK_SIZE) {
-                    int bytesRead = refillContent(content);
-                    if (bytesRead < 0) {
-                        std::cerr << "parser error : File input error\n";
-                        return 1;
-                    }
-                    if (bytesRead == 0) {
-                        doneReading = true;
-                    }
-                    totalBytes += bytesRead;
-                }
                 if (content[0] == 'x' && content[1] == 'm' && content[2] == 'l' && content[3] == 'n' && content[4] == 's' && (content[5] == ':' || content[5] == '=')) {
                     // parse XML namespace
                     assert(content.compare(0, "xmlns"sv.size(), "xmlns"sv) == 0);
