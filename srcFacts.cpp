@@ -418,7 +418,7 @@ int main(int argc, char* argv[]) {
             }
             [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
             [[maybe_unused]] const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0));
-            TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
+            TRACE("END TAG", "qName", qName, "prefix", prefix, "localName", localName);
             content.remove_prefix(nameEndPosition);
             content.remove_prefix(content.find_first_not_of(WHITESPACE));
             assert(content.compare(0, ">"sv.size(), ">"sv) == 0);
@@ -451,7 +451,7 @@ int main(int argc, char* argv[]) {
             }
             [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
             const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0, nameEndPosition));
-            TRACE("START TAG", "prefix", prefix, "qName", qName, "localName", localName);
+            TRACE("START TAG", "qName", qName, "prefix", prefix, "localName", localName);
             if (localName == "expr"sv) {
                 ++exprCount;
             } else if (localName == "decl"sv) {
@@ -561,7 +561,7 @@ int main(int argc, char* argv[]) {
             } else if (content[0] == '/' && content[1] == '>') {
                 assert(content.compare(0, "/>"sv.size(), "/>") == 0);
                 content.remove_prefix("/>"sv.size());
-                TRACE("END TAG", "prefix", prefix, "qName", qName, "localName", localName);
+                TRACE("END TAG", "qName", qName, "prefix", prefix, "localName", localName);
                 if (depth == 0)
                     break;
             }
