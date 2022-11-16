@@ -66,14 +66,14 @@ constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
 [[nodiscard]] int refillContent(std::string_view& content) {
 
     // initialize the internal buffer at first use
-    static std::string buffer(BUFFER_SIZE, ' ');
+    static char buffer[BUFFER_SIZE];
 
     // preserve prefix of unprocessed characters to start of the buffer
-    std::copy(content.cbegin(), content.cend(), buffer.begin());
+    std::copy(content.cbegin(), content.cend(), buffer);
 
     // read in multiple of whole blocks
     ssize_t bytesRead = 0;
-    while (((bytesRead = READ(0, (buffer.data() + content.size()),
+    while (((bytesRead = READ(0, (buffer + content.size()),
         BUFFER_SIZE - BLOCK_SIZE)) == -1) && (errno == EINTR)) {
     }
     if (bytesRead == -1) {
@@ -82,7 +82,7 @@ constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
     }
 
     // set content to the start of the buffer
-    content = std::string_view(&buffer[0], content.size() + bytesRead);
+    content = std::string_view(buffer, content.size() + bytesRead);
 
     return bytesRead;
 }
