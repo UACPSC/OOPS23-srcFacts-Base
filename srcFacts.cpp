@@ -337,6 +337,9 @@ int main(int argc, char* argv[]) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
                 }
+                if (bytesRead == 0) {
+                    doneReading = true;
+                }
                 totalBytes += bytesRead;
                 tagEndPosition = content.find("-->"sv);
                 if (tagEndPosition == content.npos) {
@@ -359,6 +362,9 @@ int main(int argc, char* argv[]) {
                 if (bytesRead < 0) {
                     std::cerr << "parser error : File input error\n";
                     return 1;
+                }
+                if (bytesRead == 0) {
+                    doneReading = true;
                 }
                 totalBytes += bytesRead;
                 tagEndPosition = content.find("]]>"sv);
@@ -582,6 +588,9 @@ int main(int argc, char* argv[]) {
             if (bytesRead < 0) {
                 std::cerr << "parser error : File input error\n";
                 return 1;
+            }
+            if (bytesRead == 0) {
+                doneReading = true;
             }
             totalBytes += bytesRead;
             tagEndPosition = content.find("-->"sv);
