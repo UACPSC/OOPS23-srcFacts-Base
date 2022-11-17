@@ -451,6 +451,7 @@ int main(int argc, char* argv[]) {
             }
             [[maybe_unused]] const std::string_view prefix(qName.substr(0, colonPosition));
             const std::string_view localName(qName.substr(colonPosition ? colonPosition + 1 : 0, nameEndPosition));
+            bool inEscape = localName == "escape"sv;
             TRACE("START TAG", "prefix", prefix, "qName", qName, "localName", localName);
             if (localName == "expr"sv) {
                 ++exprCount;
@@ -550,6 +551,11 @@ int main(int argc, char* argv[]) {
                     if (localName == "url"sv)
                         url = value;
                     TRACE("ATTRIBUTE", "prefix", prefix, "qname", qName, "localName", localName, "value", value);
+                    // convert special srcML escaped element to characters
+                    if (inEscape && localName == "char"sv /* && inUnit */) {
+                        // use strtol() instead of atoi() since strtol() understands hex encoding of '0x0?'
+                        [[maybe_unused]] char escapeValue = (char)strtol(value.data(), NULL, 0);
+                    }
                     content.remove_prefix(valueEndPosition);
                     content.remove_prefix("\""sv.size());
                     content.remove_prefix(content.find_first_not_of(WHITESPACE));
