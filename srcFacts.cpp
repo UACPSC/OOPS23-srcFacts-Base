@@ -556,7 +556,7 @@ int main(int argc, char* argv[]) {
                     const std::string_view value(content.substr(0, valueEndPosition));
                     if (localName == "url"sv)
                         url = value;
-                    TRACE("ATTRIBUTE", "prefix", prefix, "qname", qName, "localName", localName, "value", value);
+                    TRACE("ATTRIBUTE", "qname", qName, "prefix", prefix, "localName", localName, "value", value);
                     // convert special srcML escaped element to characters
                     if (inEscape && localName == "char"sv /* && inUnit */) {
                         // use strtol() instead of atoi() since strtol() understands hex encoding of '0x0?'
