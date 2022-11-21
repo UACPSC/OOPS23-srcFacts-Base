@@ -18,17 +18,56 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Source files for the main program srcFacts
-set(SOURCE srcFacts.cpp refillBuffer.cpp)
+# srcfacts application
+add_executable(srcfacts)
 
-# srcFact application
-add_executable(srcfacts ${SOURCE})
+# srcfacts sources
+target_sources(srcfacts PRIVATE srcFacts.cpp refillBuffer.cpp)
 
-# cmake .. -DTRACE=ON|OFF
+# cmake . -DTRACE=ON|OFF
 if(DEFINED TRACE)
     message(STATUS "TRACE is ${TRACE}")
     if(TRACE)
         target_compile_definitions(srcfacts PUBLIC TRACE)
+    endif()
+endif()
+
+# Setup optional bigdata
+set(BIGDATA_FILENAME "linux-6.0.xml")
+set(DATA_DIR "${CMAKE_CURRENT_BINARY_DIR}/data")
+include(FetchContent)
+FetchContent_Declare(bigdata
+    URL "http://gehry.sdml.cs.kent.edu/build/${BIGDATA_FILENAME}.zip"
+    DOWNLOAD_DIR ${DATA_DIR}
+    SOURCE_DIR ${DATA_DIR}
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+if(DEFINED DOWNLOAD_BIGDATA)
+    message(STATUS "DOWNLOAD_BIGDATA is ${DOWNLOAD_BIGDATA}")
+    if(DOWNLOAD_BIGDATA)
+        if(NOT DEFINED DOWNLOAD_BIGDATA_CONFIRM)
+            message(WARNING "The BIGDATA file (${BIGDATA_FILENAME}) is over 4 GB when extracted. "
+                "Make sure you have enough disk space before continuing.\n"
+                "To perform the download, set the flag DOWNLOAD_BIGDATA_CONFIRM:\n"
+                "    cmake . -DDOWNLOAD_BIGDATA_CONFIRM=ON\n"
+                "To remove this warning, either set DOWNLOAD_BIGDATA to OFF:\n"
+                "    cmake . -DDOWNLOAD_BIGDATA=OFF\n"
+                "or set the confirmation to OFF:\n"
+                "    cmake . -DDOWNLOAD_BIGDATA_CONFIRM=OFF"
+                )
+        elseif(DOWNLOAD_BIGDATA_CONFIRM)
+            message(STATUS "DOWNLOAD_BIGDATA_CONFIRM is ${DOWNLOAD_BIGDATA_CONFIRM}")
+            FetchContent_GetProperties(bigdata)
+            if (NOT bigdata_POPULATED)
+                message(STATUS "Downloading ${BIGDATA_FILENAME}.zip")
+                set(FETCHCONTENT_QUIET OFF)
+                FetchContent_Populate(bigdata)
+                set(FETCHCONTENT_QUIET ON)
+                add_custom_target(run_bigdata COMMAND $<TARGET_FILE:srcfacts> < ${bigdata_SOURCE_DIR}/${BIGDATA_FILENAME})
+            endif()
+        else()
+            message(STATUS "DOWNLOAD_BIGDATA_CONFIRM is ${DOWNLOAD_BIGDATA_CONFIRM}")
+        endif()
     endif()
 endif()
 
@@ -38,13 +77,13 @@ target_compile_options(srcfacts PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>: /W4>
 )
 
-# Extract the demo input srcML file
-file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/demo.xml.zip)
+# Extract the demo input srcML file into the data directory
+file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/demo.xml.zip DESTINATION ${DATA_DIR})
 
 # Demo run command
 add_custom_target(run
         COMMENT "Run demo"
-        COMMAND $<TARGET_FILE:srcfacts> < demo.xml
+        COMMAND $<TARGET_FILE:srcfacts> < ${DATA_DIR}/demo.xml
         DEPENDS srcfacts
         USES_TERMINAL
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
