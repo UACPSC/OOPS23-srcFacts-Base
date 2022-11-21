@@ -66,7 +66,10 @@ if(DEFINED DOWNLOAD_BIGDATA)
                 FetchContent_Populate(bigdata)
                 FetchContent_GetProperties(bigdata)
                 set(FETCHCONTENT_QUIET ON)
-                add_custom_target(run_bigdata COMMAND $<TARGET_FILE:srcfacts> < ${bigdata_SOURCE_DIR}/${BIGDATA_FILENAME})
+                add_custom_target(run_bigdata
+                    COMMAND $<TARGET_FILE:srcfacts> < ${bigdata_SOURCE_DIR}/${BIGDATA_FILENAME}
+                    USES_TERMINAL
+                )
             endif()
         else()
             message(STATUS "DOWNLOAD_BIGDATA_CONFIRM is ${DOWNLOAD_BIGDATA_CONFIRM}")
