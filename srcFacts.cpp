@@ -90,9 +90,9 @@ constexpr auto NAMEEND = "> /\":=\n\t\r"sv;
 // trace parsing
 #ifdef TRACE
 #undef TRACE
-#define HEADER(m) std::clog << std::setw(10) << std::left << m << '\t'
+#define HEADER(m) std::clog << "\033[1m" << std::setw(10) << std::left << m << "\u001b[0m" << '\t'
 #define TRACE0() ""
-#define TRACE1(l1, n1)                         l1 << ":|" << n1 << "| "
+#define TRACE1(l1, n1)                         "\033[1m" << l1 << "\u001b[0m" << "|" << "\u001b[31;1m" << n1 << "\u001b[0m" << "| "
 #define TRACE2(l1, n1, l2, n2)                 TRACE1(l1,n1)             << TRACE1(l2,n2)
 #define TRACE3(l1, n1, l2, n2, l3, n3)         TRACE2(l1,n1,l2,n2)       << TRACE1(l3,n3)
 #define TRACE4(l1, n1, l2, n2, l3, n3, l4, n4) TRACE3(l1,n1,l2,n2,l3,n3) << TRACE1(l4,n4)
