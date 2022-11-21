@@ -43,8 +43,8 @@ FetchContent_Declare(bigdata
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 if(DEFINED DOWNLOAD_BIGDATA)
-    message(STATUS "DOWNLOAD_BIGDATA is ${DOWNLOAD_BIGDATA}")
     if(DOWNLOAD_BIGDATA)
+        message(STATUS "DOWNLOAD_BIGDATA is ${DOWNLOAD_BIGDATA}")
         if(NOT DEFINED DOWNLOAD_BIGDATA_CONFIRM)
             message(WARNING "The BIGDATA file (${BIGDATA_FILENAME}) is over 4 GB when extracted. "
                 "Make sure you have enough disk space before continuing.\n"
@@ -60,8 +60,11 @@ if(DEFINED DOWNLOAD_BIGDATA)
             FetchContent_GetProperties(bigdata)
             if (NOT bigdata_POPULATED)
                 message(STATUS "Downloading ${BIGDATA_FILENAME}.zip")
-                set(FETCHCONTENT_QUIET OFF)
+                if(NOT DEFINED DOWNLOAD_BIGDATA_QUIET OR NOT DOWNLOAD_BIGDATA_QUIET)
+                    set(FETCHCONTENT_QUIET OFF)
+                endif()
                 FetchContent_Populate(bigdata)
+                FetchContent_GetProperties(bigdata)
                 set(FETCHCONTENT_QUIET ON)
                 add_custom_target(run_bigdata COMMAND $<TARGET_FILE:srcfacts> < ${bigdata_SOURCE_DIR}/${BIGDATA_FILENAME})
             endif()
