@@ -2,17 +2,14 @@
     srcFacts.cpp
 
     Produces a report with various measures of source code.
-    Supports C++, C, Java, and C#.
+    Supports C++, C, Java, and C#. Input is an XML file in the srcML format,
+    and output is a markdown table with the measures. Performance statistics
+    are output to standard error.
 
-    Input is an XML file in the srcML format.
-
-    Output is a markdown table with the measures.
-
-    Output performance statistics to stderr.
-
-    Code includes an embedded XML parser:
+    The code includes a complete XML parser:
+    * Characters and content from XML is in UTF-8
+    * DTD declarations are allowed, but not fine-grained parsed
     * No checking for well-formedness
-    * No DTD declarations
 */
 
 #include <iostream>
