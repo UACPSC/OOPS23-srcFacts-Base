@@ -71,6 +71,11 @@ if(DEFINED DOWNLOAD_BIGDATA)
                     COMMAND $<TARGET_FILE:srcfacts> < ${bigdata_SOURCE_DIR}/${BIGDATA_FILENAME}
                     USES_TERMINAL
                 )
+                add_custom_target(clean_bigdata
+                    COMMAND ${CMAKE_COMMAND} -E rm -f ${bigdata_SOURCE_DIR}/${BIGDATA_FILENAME}
+                    COMMAND ${CMAKE_COMMAND} -E echo "Set DOWNLOAD_BIGDATA to OFF or cmake may download and extract it again"
+                    USES_TERMINAL
+                )
             endif()
         else()
             message(STATUS "DOWNLOAD_BIGDATA_CONFIRM is ${DOWNLOAD_BIGDATA_CONFIRM}")
