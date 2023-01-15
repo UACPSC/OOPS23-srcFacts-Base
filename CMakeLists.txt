@@ -3,7 +3,7 @@
 # CMake files for the srcFacts project
 
 # Can be run by any version of CMake >= this
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 
 # project info
 project(srcFacts)
