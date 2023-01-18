@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
         bool inSingleQuote = false;
         bool inDoubleQuote = false;
         bool inComment = false;
-        int p = 0;
+        std::size_t p = 0;
         while ((p = content.find_first_of("<>'\"-"sv, p)) != content.npos) {
             if (content.compare(p, "<!--"sv.size(), "<!--"sv) == 0) {
                 inComment = true;
@@ -579,7 +579,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
-    content.remove_prefix(content.find_first_not_of(WHITESPACE) == -1 ? content.size() : content.find_first_not_of(WHITESPACE));
+    content.remove_prefix(content.find_first_not_of(WHITESPACE) == content.npos ? content.size() : content.find_first_not_of(WHITESPACE));
     while (!content.empty() && content[0] == '<' && content[1] == '!' && content[2] == '-' && content[3] == '-') {
         // parse XML comment
         assert(content.compare(0, "<!--"sv.size(), "<!--"sv) == 0);
@@ -607,7 +607,7 @@ int main(int argc, char* argv[]) {
         content.remove_prefix(tagEndPosition);
         assert(content.compare(0, "-->"sv.size(), "-->"sv) == 0);
         content.remove_prefix("-->"sv.size());
-        content.remove_prefix(content.find_first_not_of(WHITESPACE) == -1 ? content.size() : content.find_first_not_of(WHITESPACE));
+        content.remove_prefix(content.find_first_not_of(WHITESPACE) == content.npos ? content.size() : content.find_first_not_of(WHITESPACE));
     }
     if (!content.empty()) {
         std::cerr << "parser error : extra content at end of document\n";
