@@ -22,7 +22,7 @@ endif()
 add_executable(srcfacts)
 
 # srcfacts sources
-target_sources(srcfacts PRIVATE srcFacts.cpp refillBuffer.cpp)
+target_sources(srcfacts PRIVATE srcFacts.cpp refillContent.cpp)
 
 # cmake . -DTRACE=ON|OFF
 if(DEFINED TRACE)
