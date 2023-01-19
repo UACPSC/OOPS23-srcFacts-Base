@@ -37,7 +37,7 @@ set(BIGDATA_FILENAME "linux-6.0.xml")
 set(DATA_DIR "${CMAKE_CURRENT_BINARY_DIR}/data")
 include(FetchContent)
 FetchContent_Declare(bigdata
-    URL "http://gehry.sdml.cs.kent.edu/build/${BIGDATA_FILENAME}.zip"
+    URL "http://131.123.42.38/build/${BIGDATA_FILENAME}.zip"
     DOWNLOAD_DIR ${DATA_DIR}
     SOURCE_DIR ${DATA_DIR}
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
